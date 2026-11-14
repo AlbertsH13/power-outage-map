@@ -8,24 +8,24 @@ The application runs as a containerized Laravel monolith orchestrated with Docke
 
 ```mermaid
 graph TD
-    Browser["Client Browser (Blade + Livewire + Alpine.js + Leaflet)"]
-    Tiles["CartoDB / OpenStreetMap Tile CDN"]
+    Browser["Client Browser - Blade Livewire Alpine Leaflet"]
+    Tiles["CartoDB and OpenStreetMap Tile CDN"]
 
     subgraph Docker_Network ["Docker Compose Internal Network"]
-        Nginx["Nginx Reverse Proxy (:80)"]
-        App["Laravel App (PHP 8.3-FPM)"]
-        Queue["Queue Worker (php artisan queue:work)"]
-        Scheduler["Task Scheduler (php artisan schedule:work)"]
+        Nginx["Nginx Reverse Proxy port 80"]
+        App["Laravel App - PHP 8.3-FPM"]
+        Queue["Queue Worker - queue work"]
+        Scheduler["Task Scheduler - schedule work"]
         MySQL[("MySQL 8.0 Database")]
-        Redis[("Redis 7 (Cache, Sessions, Queues, Rate Limits)")]
+        Redis[("Redis 7 - Cache Sessions Queues")]
     end
 
-    Browser -->|"HTTP / JSON / Livewire Updates"| Nginx
-    Browser -.->|"Fetches Map Tiles (HTTPS)"| Tiles
-    Nginx -->|"FastCGI (:9000) & Static Assets"| App
+    Browser -->|"HTTP and JSON updates"| Nginx
+    Browser -.->|"Fetches map tiles"| Tiles
+    Nginx -->|"FastCGI and static assets"| App
 
-    App -->|"Read / Write Outages & Users"| MySQL
-    App -->|"Sessions, Cache, Rate Limits, Jobs"| Redis
+    App -->|"Read and write outages"| MySQL
+    App -->|"Sessions and cache and queues"| Redis
 
     Scheduler -->|"Triggers Scheduled Jobs"| Redis
     Queue -->|"Consumes Jobs"| Redis
@@ -51,42 +51,42 @@ The application separates presentation from domain logic. Controllers and Livewi
 
 ```mermaid
 flowchart TD
-    subgraph Client ["Client (Browser)"]
-        UI["Blade Views / Livewire Component"]
+    subgraph Client ["Client - Browser"]
+        UI["Blade Views and Livewire Components"]
         Alpine["Alpine.js Map Component"]
         Adapter["Leaflet Map Adapter"]
     end
 
-    subgraph HTTP ["Routing & Middleware"]
-        Route["Route Dispatcher (web.php / api.php)"]
-        AuthMid["auth / guest Middleware"]
+    subgraph HTTP ["Routing and Middleware"]
+        Route["Route Dispatcher - web and api"]
+        AuthMid["auth and guest Middleware"]
         ThrottleMid["throttle Middleware"]
     end
 
     subgraph Presentation ["Presentation Layer"]
-        LWComponent["Livewire Components (CreateReport, MyReports)"]
-        ApiController["OutageApiController (GET /api/v1/outages)"]
-        Resource["PublicOutageResource (PII-free)"]
+        LWComponent["Livewire Components - CreateReport and MyReports"]
+        ApiController["OutageApiController - GET api v1 outages"]
+        Resource["PublicOutageResource - PII free"]
     end
 
     subgraph Domain ["Domain Layer"]
-        Policy["OutagePolicy (Server-side ownership checks)"]
-        FormRequest["Livewire Form / Validation Rules"]
-        Actions["Domain Actions (CreateOutageAction, UpdateOutageAction, CloseOutageAction)"]
-        ActionLimiter["Action-Level Rate Limiter & Active Cap Check"]
+        Policy["OutagePolicy - Server ownership checks"]
+        FormRequest["Livewire Form and Validation Rules"]
+        Actions["Domain Actions - Create, Update, Close Outage"]
+        ActionLimiter["Action-Level Rate Limiter and Active Cap Check"]
     end
 
-    subgraph Persistence ["Persistence & Workers"]
-        Model["Outage Eloquent Model (Query Scopes & Enums)"]
+    subgraph Persistence ["Persistence and Workers"]
+        Model["Outage Eloquent Model - Scopes and Enums"]
         DB[("MySQL 8 Storage")]
         Job["ExpireOutagesJob"]
         SchedulerCron["Laravel Task Scheduler"]
     end
 
     UI -->|"User interaction"| Alpine
-    Alpine -->|"Visual Marker & Radius Preview"| Adapter
+    Alpine -->|"Visual Marker and Radius Preview"| Adapter
     UI -->|"Livewire state mutation"| Route
-    Alpine -->|"GET /api/v1/outages?bbox=..."| Route
+    Alpine -->|"GET api v1 outages bbox"| Route
 
     Route --> AuthMid
     AuthMid --> ThrottleMid
@@ -95,7 +95,7 @@ flowchart TD
 
     ApiController --> Model
     Model --> Resource
-    Resource -->|"JSON (No PII)"| Adapter
+    Resource -->|"JSON without PII"| Adapter
 
     LWComponent --> FormRequest
     FormRequest --> Policy
@@ -131,27 +131,27 @@ erDiagram
     OUTAGES {
         bigint id PK
         bigint user_id FK "Indexed"
-        decimal latitude "10,8"
-        decimal longitude "11,8"
-        decimal radius_km "4,2 (0.50 to 25.00)"
-        decimal min_lat "10,8 - Indexed"
-        decimal max_lat "10,8 - Indexed"
-        decimal min_lng "11,8 - Indexed"
-        decimal max_lng "11,8 - Indexed"
-        enum duration_type "'fixed', 'until_closed'"
-        int duration_hours "Nullable (1-72)"
-        string status "'active', 'closed', 'expired' - Indexed"
+        decimal latitude "decimal"
+        decimal longitude "decimal"
+        decimal radius_km "0.50 to 25.00 km"
+        decimal min_lat "Indexed"
+        decimal max_lat "Indexed"
+        decimal min_lng "Indexed"
+        decimal max_lng "Indexed"
+        enum duration_type "fixed or until_closed"
+        int duration_hours "Nullable 1-72"
+        string status "active closed expired - Indexed"
         timestamp expires_at "UTC - Indexed"
         timestamp closed_at "Nullable"
-        text description "Nullable (Max 500 chars)"
+        text description "Nullable max 500 chars"
         timestamp created_at
         timestamp updated_at
     }
 
     SESSIONS {
         string id PK
-        bigint user_id FK "Nullable, Indexed"
-        string ip_address "45"
+        bigint user_id FK "Nullable Indexed"
+        string ip_address "45 chars"
         text user_agent
         text payload
         int last_activity "Indexed"
@@ -323,18 +323,18 @@ erDiagram
 
 ```mermaid
 flowchart LR
-    Req["Incoming Request"] --> Auth{"Authenticated?"}
-    Auth -- No --> GuestCheck{"Public Endpoint?"}
-    GuestCheck -- No --> R401["401 / Redirect Login"]
+    Req["Incoming Request"] --> Auth{"Is User Authenticated"}
+    Auth -- No --> GuestCheck{"Is Public Endpoint"}
+    GuestCheck -- No --> R401["401 or Redirect to Login"]
     GuestCheck -- Yes --> Validate["Validate Input"]
 
-    Auth -- Yes --> Limiter{"Rate Limits & Active Cap"}
+    Auth -- Yes --> Limiter{"Rate Limits and Active Cap"}
     Limiter -- Exceeded --> R429["429 Too Many Requests"]
     Limiter -- OK --> Policy{"OutagePolicy Check"}
 
     Policy -- Unauthorized --> R403["403 Forbidden"]
     Policy -- Authorized --> Action["Execute Action in DB Transaction"]
-    Action --> Out["Response (PII-free)"]
+    Action --> Out["Response without PII"]
 ```
 
 ### 6.1 Guarding Against Livewire Payload Tampering
@@ -370,15 +370,15 @@ During a major blackout, thousands of residents check the map simultaneously. Th
 
 ```mermaid
 graph TD
-    Traffic["100,000+ Concurrent Map Viewers"] --> Edge["Reverse Proxy / Edge Cache"]
-    Edge -->|"Static Assets & Map Tiles"| StaticCache["Cached Response"]
-    Edge -->|"GET /api/v1/outages?bbox=... (15s TTL)"| MicroCache["Micro-Cached JSON"]
+    Traffic["100000+ Concurrent Map Viewers"] --> Edge["Reverse Proxy and Edge Cache"]
+    Edge -->|"Static Assets and Map Tiles"| StaticCache["Cached Response"]
+    Edge -->|"GET api v1 outages bbox 15s TTL"| MicroCache["Micro-Cached JSON"]
     
-    Edge -->|"Cache Misses & Authenticated Reports"| Nginx["Nginx Reverse Proxy"]
-    Nginx --> AppPool["PHP-FPM Workers (Horizontally Scaled)"]
-    AppPool --> MasterDB[("MySQL Primary (Writes)")]
-    AppPool --> ReplicaDB[("MySQL Read Replica (Viewport Queries)")]
-    AppPool --> RedisCluster[("Redis (Sessions & Rate Limits)")]
+    Edge -->|"Cache Misses and Auth Reports"| Nginx["Nginx Reverse Proxy"]
+    Nginx --> AppPool["PHP-FPM Workers - Horizontally Scaled"]
+    AppPool --> MasterDB[("MySQL Primary - Writes")]
+    AppPool --> ReplicaDB[("MySQL Read Replica - Viewport Queries")]
+    AppPool --> RedisCluster[("Redis - Sessions and Rate Limits")]
 ```
 
 1. **Decoupled Viewport Queries:** Serving map data via `GET /api/v1/outages` instead of Livewire means passive viewers do not trigger Livewire hydration or session writes.
