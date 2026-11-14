@@ -5,6 +5,7 @@ COPY package.json package-lock.json* ./
 RUN if [ -f package-lock.json ]; then npm ci; else npm install; fi
 COPY resources ./resources
 COPY vite.config.js ./
+COPY tailwind.config.js* postcss.config.js* ./
 RUN npm run build
 
 # Etapa 2: Imagen de producción PHP 8.3-FPM limpia y sin Node.js
