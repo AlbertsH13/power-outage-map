@@ -14,8 +14,6 @@ class Outage extends Model
     use HasFactory;
 
     /**
-     * The attributes that are mass assignable.
-     *
      * @var list<string>
      */
     protected $fillable = [
@@ -36,8 +34,6 @@ class Outage extends Model
     ];
 
     /**
-     * Get the attributes that should be cast.
-     *
      * @return array<string, string>
      */
     protected function casts(): array
@@ -58,27 +54,17 @@ class Outage extends Model
         ];
     }
 
-    /**
-     * The reporting user that owns the outage report.
-     */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
-    /**
-     * Scope a query to only include actively ongoing outages.
-     * Dual-layer check: status must be Active AND expires_at must be in the future.
-     */
     public function scopeActive(Builder $query): Builder
     {
         return $query->where('status', OutageStatus::Active)
             ->where('expires_at', '>', now());
     }
 
-    /**
-     * Scope a query to filter outages overlapping a visible map viewport bounding box.
-     */
     public function scopeWithinBounds(Builder $query, float $minLat, float $minLng, float $maxLat, float $maxLng): Builder
     {
         return $query->where('max_lat', '>=', $minLat)
@@ -88,12 +74,11 @@ class Outage extends Model
     }
 
     /**
-     * Helper to compute bounding box coordinates given center lat/lng and radius in km.
-     *
      * @return array{min_lat: float, max_lat: float, min_lng: float, max_lng: float}
      */
     public static function calculateBoundingBox(float $lat, float $lng, float $radiusKm): array
     {
+        // ~111.32 km per degree of latitude
         $deltaLat = $radiusKm / 111.32;
         $deltaLng = $radiusKm / (111.32 * cos(deg2rad($lat)));
 

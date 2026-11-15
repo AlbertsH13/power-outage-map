@@ -34,26 +34,22 @@ class OutageModelTest extends TestCase
     {
         $user = User::factory()->create();
 
-        // 1. Active and not expired -> should be included
         $activeOutage = Outage::factory()->create([
             'user_id' => $user->id,
             'status' => OutageStatus::Active,
             'expires_at' => now()->addHours(2),
         ]);
 
-        // 2. Active status but expires_at is in the past -> must NOT be included
         $expiredByTime = Outage::factory()->create([
             'user_id' => $user->id,
             'status' => OutageStatus::Active,
             'expires_at' => now()->subMinute(),
         ]);
 
-        // 3. Closed status -> must NOT be included
         $closedOutage = Outage::factory()->closed()->create([
             'user_id' => $user->id,
         ]);
 
-        // 4. Expired status -> must NOT be included
         $expiredStatusOutage = Outage::factory()->expired()->create([
             'user_id' => $user->id,
         ]);
@@ -70,7 +66,6 @@ class OutageModelTest extends TestCase
     {
         $user = User::factory()->create();
 
-        // Outage in Downtown Caracas (~10.5000, -66.9100)
         $caracasOutage = Outage::factory()->create([
             'user_id' => $user->id,
             'latitude' => 10.50000000,
@@ -81,7 +76,6 @@ class OutageModelTest extends TestCase
             'max_lng' => -66.89000000,
         ]);
 
-        // Outage far away in Maracaibo (~10.6500, -71.6500)
         $maracaiboOutage = Outage::factory()->create([
             'user_id' => $user->id,
             'latitude' => 10.65000000,
@@ -92,7 +86,6 @@ class OutageModelTest extends TestCase
             'max_lng' => -71.63000000,
         ]);
 
-        // Viewport bounding box covering Caracas only (lat: 10.45 to 10.55, lng: -67.00 to -66.80)
         $results = Outage::query()->withinBounds(
             minLat: 10.45,
             minLng: -67.00,

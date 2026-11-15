@@ -15,9 +15,6 @@ use Illuminate\Support\Facades\Gate;
 
 class OutageApiController extends Controller
 {
-    /**
-     * Display a listing of active outages within the requested map viewport.
-     */
     public function index(OutageViewportRequest $request): JsonResponse
     {
         $outages = Outage::query()
@@ -35,14 +32,10 @@ class OutageApiController extends Controller
             ->header('Cache-Control', 'public, max-age=15, stale-while-revalidate=30');
     }
 
-    /**
-     * Store a newly created outage report in storage.
-     */
     public function store(StoreOutageRequest $request): JsonResponse
     {
         $user = $request->user();
 
-        // Enforce maximum active reports limit per user (O(1) lookup via idx_outages_user_active)
         $activeCount = Outage::where('user_id', $user->id)
             ->where('status', OutageStatus::Active)
             ->where('expires_at', '>', now())
@@ -94,10 +87,6 @@ class OutageApiController extends Controller
             ->setStatusCode(201);
     }
 
-    /**
-     * Manually close an active outage report.
-     * Protected by OutagePolicy: only the creator can close their report.
-     */
     public function close(Request $request, Outage $outage): JsonResponse
     {
         Gate::authorize('close', $outage);

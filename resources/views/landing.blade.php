@@ -5,14 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ config('app.name', 'Power Outage Map') }} — Real-Time Monitoring</title>
 
-    <!-- Leaflet CSS via CDN (ADR 05) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
 
-    <!-- Scripts & Styles -->
     @vite(['resources/css/app.css', 'resources/js/app.js', 'resources/js/outage-map.js'])
 </head>
 <body class="min-h-full flex flex-col bg-gray-50 text-neutral-900 antialiased font-sans">
-    <!-- Navbar -->
     <header class="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-gray-200">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
             <a href="{{ route('home') }}" class="flex items-center gap-2.5 font-bold text-gray-900 tracking-tight text-lg">
@@ -53,12 +50,9 @@
         </div>
     </header>
 
-    <!-- Main Content -->
     <main class="flex-1">
-        <!-- Hero Section -->
         <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-8 sm:pt-14 sm:pb-12">
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
-                <!-- Text Column -->
                 <div class="lg:col-span-5 space-y-6 text-center lg:text-left">
                     <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-red-50 text-red-700 border border-red-200">
                         <span class="w-2 h-2 rounded-full bg-red-600 animate-pulse"></span>
@@ -93,7 +87,6 @@
                     </div>
                 </div>
 
-                <!-- Embedded Preview Map -->
                 <div class="lg:col-span-7">
                     <div class="bg-white p-2 rounded-2xl shadow-sm border border-gray-200">
                         <x-outage-map id="preview-map" lat="10.492" lng="-66.880" zoom="12" class="h-[420px] sm:h-[480px] w-full" />
@@ -105,7 +98,6 @@
             </div>
         </section>
 
-        <!-- Features / Steps Section -->
         <section class="border-t border-gray-200 bg-white py-12 sm:py-16">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="text-center max-w-3xl mx-auto mb-10">
@@ -118,7 +110,6 @@
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                    <!-- Step 1 -->
                     <div class="p-6 rounded-xl border border-gray-200 bg-gray-50/50 hover:bg-gray-50 transition">
                         <div class="w-10 h-10 rounded-lg bg-red-100 text-red-600 font-bold flex items-center justify-center text-lg mb-4">
                             1
@@ -129,7 +120,6 @@
                         </p>
                     </div>
 
-                    <!-- Step 2 -->
                     <div class="p-6 rounded-xl border border-gray-200 bg-gray-50/50 hover:bg-gray-50 transition">
                         <div class="w-10 h-10 rounded-lg bg-blue-100 text-blue-600 font-bold flex items-center justify-center text-lg mb-4">
                             2
@@ -140,7 +130,6 @@
                         </p>
                     </div>
 
-                    <!-- Step 3 -->
                     <div class="p-6 rounded-xl border border-gray-200 bg-gray-50/50 hover:bg-gray-50 transition">
                         <div class="w-10 h-10 rounded-lg bg-emerald-100 text-emerald-600 font-bold flex items-center justify-center text-lg mb-4">
                             3
@@ -155,7 +144,6 @@
         </section>
     </main>
 
-    <!-- Footer -->
     <footer class="bg-gray-900 text-gray-400 py-8 border-t border-gray-800 text-sm">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
             <p>&copy; {{ date('Y') }} Power Outage Map. Laravel 13 Monolith Architecture.</p>
@@ -166,7 +154,6 @@
         </div>
     </footer>
 
-    <!-- Leaflet JS via CDN (ADR 05) -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 </body>
 </html>

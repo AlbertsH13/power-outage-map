@@ -5,14 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Live Map — {{ config('app.name', 'Power Outage Map') }}</title>
 
-    <!-- Leaflet CSS via CDN (ADR 05) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
 
-    <!-- Scripts & Styles -->
     @vite(['resources/css/app.css', 'resources/js/app.js', 'resources/js/outage-map.js'])
 </head>
 <body class="h-full flex flex-col bg-gray-100 text-gray-900 antialiased font-sans overflow-hidden">
-    <!-- Top Header -->
     <header class="h-14 bg-white border-b border-gray-200 px-4 flex items-center justify-between shrink-0 z-20 shadow-xs">
         <div class="flex items-center gap-3">
             <a href="{{ route('home') }}" class="flex items-center gap-2 font-bold text-gray-900 hover:text-red-600 transition text-sm sm:text-base">
@@ -61,11 +58,9 @@
         </div>
     </header>
 
-    <!-- Fullscreen Map Container -->
     <div class="flex-1 relative w-full h-[calc(100vh-3.5rem)]">
         <x-outage-map id="outage-map" lat="10.492" lng="-66.880" zoom="13" class="h-full w-full rounded-none border-0" />
 
-        <!-- Floating Legend & Controls Overlay -->
         <div class="absolute bottom-6 left-6 z-10 bg-white/95 backdrop-blur-sm border border-gray-200 rounded-lg p-3 shadow-md text-xs space-y-2 pointer-events-auto max-w-xs">
             <div class="font-semibold text-gray-800 border-b border-gray-100 pb-1 flex items-center justify-between">
                 <span>Map Legend</span>
@@ -85,10 +80,8 @@
         </div>
     </div>
 
-    <!-- Leaflet JS via CDN (ADR 05) -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 
-    <!-- Map Badge Update Hook -->
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const mapEl = document.getElementById('outage-map');

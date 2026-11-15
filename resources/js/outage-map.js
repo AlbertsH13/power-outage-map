@@ -1,8 +1,3 @@
-/**
- * OutageMapAdapter — Lightweight Leaflet map adapter for the Power Outage Platform.
- * Communicates with GET /api/v1/outages using bounding-box queries and auto-polling.
- */
-
 function escapeHtml(str) {
     if (!str) return '';
     const div = document.createElement('div');
@@ -52,7 +47,6 @@ export class OutageMapAdapter {
 
         if (this.map) return;
 
-        // Initialize Leaflet map
         this.map = L.map(this.container, {
             center: [this.options.defaultLat, this.options.defaultLng],
             zoom: this.options.defaultZoom,
@@ -63,24 +57,19 @@ export class OutageMapAdapter {
             touchZoom: this.options.interactive,
         });
 
-        // Standard official OpenStreetMap tiles (100% free, zero API key)
         L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
             maxZoom: 19
         }).addTo(this.map);
 
-        // Layer group to hold outage circles
         this.layersGroup = L.layerGroup().addTo(this.map);
 
-        // Debounced viewport change handler
         const debouncedFetch = debounce(() => this.fetchVisibleOutages(), 300);
         this.map.on('moveend', debouncedFetch);
         this.map.on('zoomend', debouncedFetch);
 
-        // Initial fetch
         this.fetchVisibleOutages();
 
-        // 30-second polling interval
         if (this.options.pollingIntervalMs > 0) {
             this.pollTimer = setInterval(() => this.fetchVisibleOutages(), this.options.pollingIntervalMs);
         }
@@ -129,7 +118,6 @@ export class OutageMapAdapter {
             const isOwner = Boolean(outage.is_owner);
             const radiusMeters = (outage.radius_km || 1.0) * 1000;
 
-            // Distinct styling for owner reports vs other reports
             const circle = L.circle([outage.latitude, outage.longitude], {
                 radius: radiusMeters,
                 color: isOwner ? '#2563EB' : '#E5484D',
@@ -139,14 +127,12 @@ export class OutageMapAdapter {
                 dashArray: isOwner ? '6, 4' : null,
             });
 
-            // Format expiration
             const expirationDate = outage.expires_at ? new Date(outage.expires_at) : null;
             const expFormatted = expirationDate ? expirationDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—';
             const durationLabel = outage.duration_type === 'fixed' 
                 ? `${outage.duration_hours || '—'}h fixed`
                 : 'Until resolved';
 
-            // Clean minimalist popup (No PII)
             const popupContent = `
                 <div class="p-1 font-sans text-xs text-gray-800" style="min-width: 180px;">
                     <div class="flex items-center justify-between gap-2 mb-1.5 pb-1 border-b border-gray-100">
@@ -186,12 +172,10 @@ export class OutageMapAdapter {
     }
 }
 
-// Global initialization helper
 window.initOutageMap = function (elementId = 'outage-map', options = {}) {
     return new OutageMapAdapter(elementId, options);
 };
 
-// Auto-initialize when container is present
 document.addEventListener('DOMContentLoaded', () => {
     const defaultEl = document.getElementById('outage-map');
     if (defaultEl && !defaultEl._outageMapInstance) {

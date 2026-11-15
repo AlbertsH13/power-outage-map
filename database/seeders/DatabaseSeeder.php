@@ -14,12 +14,8 @@ class DatabaseSeeder extends Seeder
 {
     use WithoutModelEvents;
 
-    /**
-     * Seed the application's database with demo users and realistic outages.
-     */
     public function run(): void
     {
-        // 1. Primary demo user (required for testing / evaluator review)
         $demoUser = User::firstOrCreate(
             ['email' => 'demo@example.com'],
             [
@@ -29,7 +25,6 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
-        // 2. Secondary community user
         $communityUser = User::firstOrCreate(
             ['email' => 'jane@example.com'],
             [
@@ -39,7 +34,6 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
-        // 3. Realistic sample outages around a metropolitan cluster (Caracas coordinate center)
         $sampleLocations = [
             ['lat' => 10.4910, 'lng' => -66.8620, 'radius' => 2.50, 'desc' => 'Substation transformer failure affecting downtown grid.'],
             ['lat' => 10.4780, 'lng' => -66.8400, 'radius' => 1.20, 'desc' => 'Downed power line on 5th Avenue after heavy winds.'],
@@ -70,7 +64,6 @@ class DatabaseSeeder extends Seeder
             ]);
         }
 
-        // 4. One "Until closed" active outage (72h safety cap)
         $openBounds = Outage::calculateBoundingBox(10.4850, -66.8750, 1.80);
         Outage::create([
             'user_id' => $demoUser->id,
@@ -89,7 +82,6 @@ class DatabaseSeeder extends Seeder
             'description' => 'Unconfirmed outage awaiting utility inspection.',
         ]);
 
-        // 5. Sample past outages (expired and manually closed)
         $expiredBounds = Outage::calculateBoundingBox(10.4700, -66.8200, 2.00);
         Outage::create([
             'user_id' => $communityUser->id,
