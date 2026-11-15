@@ -27,8 +27,11 @@
                 </a>
 
                 @auth
-                    <a href="{{ url('/dashboard') }}" class="text-gray-700 hover:text-gray-900 transition">
-                        Dashboard
+                    <a href="{{ route('reports.create') }}" class="text-gray-700 hover:text-red-600 transition">
+                        Report Outage
+                    </a>
+                    <a href="{{ route('reports.index') }}" class="text-gray-700 hover:text-gray-900 transition">
+                        My Reports
                     </a>
                     <form method="POST" action="{{ route('logout') }}" class="inline">
                         @csrf
@@ -76,8 +79,11 @@
                         </a>
 
                         @auth
-                            <a href="{{ url('/dashboard') }}" class="w-full sm:w-auto px-6 py-3 rounded-lg bg-white border border-gray-300 text-gray-800 font-semibold text-center hover:bg-gray-50 transition shadow-sm">
-                                Manage My Reports
+                            <a href="{{ route('reports.create') }}" class="w-full sm:w-auto px-6 py-3 rounded-lg bg-gray-900 text-white font-semibold text-center hover:bg-black transition shadow-sm">
+                                Report an Outage
+                            </a>
+                            <a href="{{ route('reports.index') }}" class="w-full sm:w-auto px-6 py-3 rounded-lg bg-white border border-gray-300 text-gray-800 font-semibold text-center hover:bg-gray-50 transition shadow-sm">
+                                My Reports
                             </a>
                         @else
                             <a href="{{ route('login') }}" class="w-full sm:w-auto px-6 py-3 rounded-lg bg-white border border-gray-300 text-gray-800 font-semibold text-center hover:bg-gray-50 transition shadow-sm">

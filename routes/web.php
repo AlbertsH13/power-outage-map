@@ -4,14 +4,28 @@ use App\Http\Controllers\Api\V1\OutageApiController;
 use App\Http\Controllers\LandingPageController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PublicMapController;
+use App\Http\Controllers\ReportController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', LandingPageController::class)->name('home');
 Route::get('/map', PublicMapController::class)->name('map');
 
 Route::get('/dashboard', function () {
-    return view('dashboard');
+    return redirect()->route('reports.index');
 })->middleware(['auth', 'verified'])->name('dashboard');
+
+Route::middleware('auth')->group(function () {
+    Route::get('/reports/create', [ReportController::class, 'create'])->name('reports.create');
+    Route::post('/reports', [ReportController::class, 'store'])
+        ->middleware('throttle:create-outage')
+        ->name('reports.store');
+    Route::get('/my-reports', [ReportController::class, 'index'])->name('reports.index');
+    Route::match(['post', 'patch'], '/reports/{outage}/close', [ReportController::class, 'close'])->name('reports.close');
+
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+});
 
 Route::prefix('api/v1')->group(function () {
     Route::get('/outages', [OutageApiController::class, 'index'])
@@ -24,12 +38,6 @@ Route::prefix('api/v1')->group(function () {
         Route::match(['post', 'patch'], '/outages/{outage}/close', [OutageApiController::class, 'close'])
             ->name('api.outages.close');
     });
-});
-
-Route::middleware('auth')->group(function () {
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
 require __DIR__.'/auth.php';
