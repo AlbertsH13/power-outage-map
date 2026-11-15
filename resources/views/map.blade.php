@@ -36,8 +36,11 @@
 
         <div class="flex items-center gap-2 sm:gap-3 text-sm">
             @auth
-                <a href="{{ url('/dashboard') }}" class="px-3 py-1.5 rounded-md border border-gray-200 text-gray-700 hover:bg-gray-50 transition text-xs sm:text-sm font-medium">
-                    Dashboard
+                <a href="{{ route('reports.create') }}" class="px-3 py-1.5 rounded-md bg-red-600 text-white hover:bg-red-700 transition text-xs sm:text-sm font-medium shadow-xs">
+                    Report Outage
+                </a>
+                <a href="{{ route('reports.index') }}" class="px-3 py-1.5 rounded-md border border-gray-200 text-gray-700 hover:bg-gray-50 transition text-xs sm:text-sm font-medium">
+                    My Reports
                 </a>
                 <form method="POST" action="{{ route('logout') }}" class="inline">
                     @csrf

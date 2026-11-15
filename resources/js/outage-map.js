@@ -172,8 +172,140 @@ export class OutageMapAdapter {
     }
 }
 
+export class OutagePickerAdapter {
+    constructor(elementId, options = {}) {
+        this.elementId = elementId;
+        this.container = typeof elementId === 'string' ? document.getElementById(elementId) : elementId;
+        if (!this.container) return;
+
+        this.options = {
+            defaultLat: parseFloat(this.container.dataset.lat || options.defaultLat || 10.492),
+            defaultLng: parseFloat(this.container.dataset.lng || options.defaultLng || -66.880),
+            defaultZoom: parseInt(this.container.dataset.zoom || options.defaultZoom || 13, 10),
+            initialRadiusKm: parseFloat(this.container.dataset.radius || options.initialRadiusKm || 2.0),
+            onLocationChange: options.onLocationChange || null,
+            ...options
+        };
+
+        this.map = null;
+        this.marker = null;
+        this.circle = null;
+
+        this.init();
+    }
+
+    init() {
+        if (!window.L) {
+            console.warn('[OutagePicker] Leaflet (L) is not loaded. Waiting for Leaflet...');
+            setTimeout(() => this.init(), 100);
+            return;
+        }
+
+        if (this.map) return;
+
+        this.map = L.map(this.container, {
+            center: [this.options.defaultLat, this.options.defaultLng],
+            zoom: this.options.defaultZoom,
+        });
+
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+            maxZoom: 19
+        }).addTo(this.map);
+
+        this.marker = L.marker([this.options.defaultLat, this.options.defaultLng], {
+            draggable: true
+        }).addTo(this.map);
+
+        this.circle = L.circle([this.options.defaultLat, this.options.defaultLng], {
+            radius: this.options.initialRadiusKm * 1000,
+            color: '#E5484D',
+            fillColor: '#E5484D',
+            fillOpacity: 0.25,
+            weight: 2
+        }).addTo(this.map);
+
+        this.map.on('click', (e) => {
+            this.setLocation(e.latlng.lat, e.latlng.lng);
+        });
+
+        this.marker.on('dragend', () => {
+            const pos = this.marker.getLatLng();
+            this.setLocation(pos.lat, pos.lng);
+        });
+
+        if (typeof this.options.onLocationChange === 'function') {
+            this.options.onLocationChange({
+                lat: this.options.defaultLat,
+                lng: this.options.defaultLng
+            });
+        }
+    }
+
+    setLocation(lat, lng) {
+        lat = parseFloat(Number(lat).toFixed(8));
+        lng = parseFloat(Number(lng).toFixed(8));
+
+        if (this.marker) {
+            this.marker.setLatLng([lat, lng]);
+        }
+        if (this.circle) {
+            this.circle.setLatLng([lat, lng]);
+        }
+        if (this.map) {
+            this.map.panTo([lat, lng]);
+        }
+        if (typeof this.options.onLocationChange === 'function') {
+            this.options.onLocationChange({ lat, lng });
+        }
+    }
+
+    setRadius(radiusKm) {
+        const radiusMeters = parseFloat(radiusKm) * 1000;
+        if (this.circle && !isNaN(radiusMeters)) {
+            this.circle.setRadius(radiusMeters);
+        }
+    }
+
+    locateUser() {
+        return new Promise((resolve, reject) => {
+            if (!navigator.geolocation) {
+                reject(new Error('unsupported'));
+                return;
+            }
+
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+                    this.setLocation(lat, lng);
+                    if (this.map) {
+                        this.map.panTo([lat, lng]);
+                    }
+                    resolve({ lat, lng });
+                },
+                (error) => {
+                    reject(error);
+                },
+                { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 }
+            );
+        });
+    }
+
+    destroy() {
+        if (this.map) {
+            this.map.remove();
+            this.map = null;
+        }
+    }
+}
+
 window.initOutageMap = function (elementId = 'outage-map', options = {}) {
     return new OutageMapAdapter(elementId, options);
+};
+
+window.initOutagePicker = function (elementId = 'picker-map', options = {}) {
+    return new OutagePickerAdapter(elementId, options);
 };
 
 document.addEventListener('DOMContentLoaded', () => {

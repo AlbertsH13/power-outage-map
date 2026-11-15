@@ -38,13 +38,13 @@ class MapPageTest extends TestCase
         $this->actingAs($user)
             ->get('/')
             ->assertStatus(200)
-            ->assertSee('Dashboard')
+            ->assertSee('My Reports')
             ->assertSee('preview-map');
 
         $this->actingAs($user)
             ->get('/map')
             ->assertStatus(200)
             ->assertSee('outage-map')
-            ->assertSee('Dashboard');
+            ->assertSee('My Reports');
     }
 }
