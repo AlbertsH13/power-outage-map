@@ -7,18 +7,11 @@ use Illuminate\Foundation\Http\FormRequest;
 
 class OutageViewportRequest extends FormRequest
 {
-    /**
-     * Determine if the user is authorized to make this request.
-     */
     public function authorize(): bool
     {
         return true;
     }
 
-    /**
-     * Prepare the data for validation.
-     * Supports both discrete query params and bbox="minLat,minLng,maxLat,maxLng".
-     */
     protected function prepareForValidation(): void
     {
         if ($this->filled('bbox') && is_string($this->query('bbox'))) {
@@ -36,8 +29,6 @@ class OutageViewportRequest extends FormRequest
     }
 
     /**
-     * Get the validation rules that apply to the request.
-     *
      * @return array<string, ValidationRule|array<mixed>|string>
      */
     public function rules(): array

@@ -1,12 +1,13 @@
 <?php
 
 use App\Http\Controllers\Api\V1\OutageApiController;
+use App\Http\Controllers\LandingPageController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\PublicMapController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
-    return view('welcome');
-});
+Route::get('/', LandingPageController::class)->name('home');
+Route::get('/map', PublicMapController::class)->name('map');
 
 Route::get('/dashboard', function () {
     return view('dashboard');

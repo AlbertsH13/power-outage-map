@@ -7,16 +7,11 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
- * PublicOutageResource - Exposes outage coordinates and status without PII.
- *
  * @mixin Outage
  */
 class PublicOutageResource extends JsonResource
 {
     /**
-     * Transform the resource into an array.
-     * Strips all PII while delivering required geospatial coordinates for Leaflet.
-     *
      * @return array<string, mixed>
      */
     public function toArray(Request $request): array

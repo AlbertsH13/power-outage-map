@@ -18,7 +18,6 @@ class OutageApiTest extends TestCase
     {
         $user = User::factory()->create();
 
-        // 1. In-bounds active outage
         $inBounds = Outage::factory()->create([
             'user_id' => $user->id,
             'latitude' => 10.48000000,
@@ -33,7 +32,6 @@ class OutageApiTest extends TestCase
             'description' => 'Active grid failure',
         ]);
 
-        // 2. Out-of-bounds active outage
         Outage::factory()->create([
             'user_id' => $user->id,
             'latitude' => 10.65000000,
@@ -47,7 +45,6 @@ class OutageApiTest extends TestCase
             'expires_at' => now()->addHours(4),
         ]);
 
-        // 3. In-bounds expired outage
         Outage::factory()->create([
             'user_id' => $user->id,
             'latitude' => 10.48500000,
@@ -56,7 +53,6 @@ class OutageApiTest extends TestCase
             'expires_at' => now()->subHour(),
         ]);
 
-        // 4. In-bounds closed outage
         Outage::factory()->closed()->create([
             'user_id' => $user->id,
             'latitude' => 10.48200000,
@@ -92,7 +88,6 @@ class OutageApiTest extends TestCase
                 ],
             ]);
 
-        // Verify zero PII leakage
         $data = $response->json('data.0');
         $this->assertArrayNotHasKey('user_id', $data);
         $this->assertArrayNotHasKey('user', $data);
@@ -101,17 +96,14 @@ class OutageApiTest extends TestCase
 
     public function test_viewport_validation_requires_valid_geographic_coordinates(): void
     {
-        // Missing parameters
         $this->getJson('/api/v1/outages')
             ->assertStatus(422)
             ->assertJsonValidationErrors(['min_lat', 'max_lat', 'min_lng', 'max_lng']);
 
-        // Out of latitude range
         $this->getJson('/api/v1/outages?min_lat=-95&max_lat=95&min_lng=-60&max_lng=-50')
             ->assertStatus(422)
             ->assertJsonValidationErrors(['min_lat', 'max_lat']);
 
-        // min_lat greater than max_lat
         $this->getJson('/api/v1/outages?min_lat=20&max_lat=10&min_lng=-60&max_lng=-50')
             ->assertStatus(422)
             ->assertJsonValidationErrors(['max_lat']);
@@ -197,7 +189,7 @@ class OutageApiTest extends TestCase
             ->assertJsonPath('data.duration_type', 'until_closed')
             ->assertJsonPath('data.duration_hours', null);
 
-        // ADR 03 hard cap: expires_at must be set to now() + 72h
+        // Safety cap: expires_at set to now() + 72h
         $this->assertDatabaseHas('outages', [
             'user_id' => $user->id,
             'duration_type' => DurationType::UntilClosed->value,
@@ -213,7 +205,6 @@ class OutageApiTest extends TestCase
     {
         $user = User::factory()->create();
 
-        // Radius below 0.5km minimum
         $this->actingAs($user)->postJson('/api/v1/outages', [
             'latitude' => 10.48,
             'longitude' => -66.86,
@@ -223,7 +214,6 @@ class OutageApiTest extends TestCase
         ])->assertStatus(422)
             ->assertJsonValidationErrors(['radius_km']);
 
-        // Radius above 25.0km maximum
         $this->actingAs($user)->postJson('/api/v1/outages', [
             'latitude' => 10.48,
             'longitude' => -66.86,
@@ -233,7 +223,6 @@ class OutageApiTest extends TestCase
         ])->assertStatus(422)
             ->assertJsonValidationErrors(['radius_km']);
 
-        // Fixed duration without duration_hours
         $this->actingAs($user)->postJson('/api/v1/outages', [
             'latitude' => 10.48,
             'longitude' => -66.86,
@@ -247,14 +236,12 @@ class OutageApiTest extends TestCase
     {
         $user = User::factory()->create();
 
-        // Seed 3 active outages for this user (the max allowed)
         Outage::factory()->count(3)->create([
             'user_id' => $user->id,
             'status' => OutageStatus::Active,
             'expires_at' => now()->addHours(5),
         ]);
 
-        // Attempting to create the 4th outage must be rejected with 422
         $response = $this->actingAs($user)->postJson('/api/v1/outages', [
             'latitude' => 10.48,
             'longitude' => -66.86,
@@ -330,21 +317,18 @@ class OutageApiTest extends TestCase
     {
         $user = User::factory()->create();
 
-        // 1. Overdue active report -> should expire
         $overdue = Outage::factory()->create([
             'user_id' => $user->id,
             'status' => OutageStatus::Active,
             'expires_at' => now()->subMinute(),
         ]);
 
-        // 2. Future active report -> remains active
         $future = Outage::factory()->create([
             'user_id' => $user->id,
             'status' => OutageStatus::Active,
             'expires_at' => now()->addHour(),
         ]);
 
-        // 3. Already closed report -> remains closed
         $closed = Outage::factory()->closed()->create([
             'user_id' => $user->id,
             'expires_at' => now()->subHour(),

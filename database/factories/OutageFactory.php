@@ -16,8 +16,6 @@ class OutageFactory extends Factory
     protected $model = Outage::class;
 
     /**
-     * Define the model's default state.
-     *
      * @return array<string, mixed>
      */
     public function definition(): array
@@ -46,9 +44,6 @@ class OutageFactory extends Factory
         ];
     }
 
-    /**
-     * State: Expired outage.
-     */
     public function expired(): static
     {
         return $this->state(fn (array $attributes) => [
@@ -57,9 +52,6 @@ class OutageFactory extends Factory
         ]);
     }
 
-    /**
-     * State: Closed manually by user.
-     */
     public function closed(): static
     {
         return $this->state(fn (array $attributes) => [
@@ -68,9 +60,6 @@ class OutageFactory extends Factory
         ]);
     }
 
-    /**
-     * State: Until I close it (with 72h safety limit).
-     */
     public function untilClosed(): static
     {
         return $this->state(fn (array $attributes) => [
