@@ -282,10 +282,10 @@ erDiagram
 ### ADR 05: Map Provider & Key Protection (Leaflet + OpenStreetMap)
 * **Status:** Accepted
 * **Context:** Evaluators need to run the application immediately without signing up for paid accounts or entering credit card details. The map provider must also be decoupled from the application views.
-* **Decision:** Use **Leaflet.js with CartoDB Positron / OpenStreetMap tiles** as the default provider, encapsulated behind a Blade component (`<x-outage-map />`) and a JavaScript adapter (`resources/js/map/OutageMapAdapter.js`).
+* **Decision:** Use **Leaflet.js with official OpenStreetMap tiles (`tile.openstreetmap.org`)** as the default provider, encapsulated behind a Blade component (`<x-outage-map />`) and a JavaScript adapter (`resources/js/outage-map.js`).
 * **Why:**
-  - Zero cost, zero API keys, and zero setup friction for anyone reviewing the repository.
-  - CartoDB Positron's clean, light grayscale style matches our minimalist UI guidelines (`#FFFFFF`, `#111111`, `#E5484D`).
+  - Zero cost, 100% free, zero API keys, zero watermarks, and zero setup friction for anyone reviewing the repository.
+  - Direct OpenStreetMap tiles (`https://tile.openstreetmap.org/{z}/{x}/{y}.png`) ensure reliable public serving without third-party API key enforcement or watermarks.
   - The JavaScript adapter pattern keeps Leaflet APIs out of Livewire and Blade. If a project requires Google Maps in the future, only the adapter needs to be swapped.
   - If a Google Maps key is provided in `.env`, it is injected at runtime via Blade layout configuration (`config('services.maps.key')`), never baked into Vite bundles.
   - **Browser Key Hardening (Production):** If an external provider key is exposed in client-side HTML, exposure risk is mitigated directly in the provider's cloud console: (1) HTTP Referrer allowlisting locked to the production domain (`https://app.example.com/*`), (2) API scoping restricted exclusively to the Maps JavaScript API (disabling Geocoding, Places, or Elevation APIs on that credential), and (3) daily request quota caps with budget alerts to prevent bill-shock abuse.
