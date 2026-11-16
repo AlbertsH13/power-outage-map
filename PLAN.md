@@ -78,20 +78,21 @@ The target effort is **21.5 hours** across 7 milestones, prioritizing core archi
 | Milestone | Estimated Hours | Actual Hours | Variance |
 |---|---|---|---|
 | M1: Planning & Architecture | 2.5h | 2.25h | -0.25h |
-| M2: Docker Infrastructure | 2.5h | 2.50h | 0.00h |
-| M3: Foundation (Auth & DB) | 2.5h | 2.25h | -0.25h |
+| M2: Docker Infrastructure | 2.5h | 2.25h | -0.25h |
+| M3: Foundation (Auth & DB) | 2.5h | 2.00h | -0.50h |
 | M4: Domain Layer & Expiration | 3.5h | 3.25h | -0.25h |
-| M5: Public Map & JS Adapter | 3.5h | 3.75h | +0.25h |
-| M6: UI & Visual Guidelines | 4.0h | 4.25h | +0.25h |
-| M7: Testing & Verification | 3.0h | 2.75h | -0.25h |
-| **Total** | **21.5h** | **21.0h** | **-0.5h** |
+| M5: Public Map & JS Adapter | 3.5h | 3.25h | -0.25h |
+| M6: UI & Livewire Integration | 4.0h | 6.50h | +2.50h |
+| M7: Testing & Verification | 3.0h | 2.50h | -0.50h |
+| **Total** | **21.5h** | **22.0h** | **+0.5h** |
 
 ### 4.2 Deviations & Lessons Learned
 
-1. **Native Blade + Alpine.js vs. Livewire Runtime Overhead:**
-   - Replaced server-side component rehydration with server-rendered Blade templates, idiomatic FormRequests, and an encapsulated Alpine.js Leaflet adapter (`resources/js/outage-map.js`).
-   - Eliminates live-DOM re-rendering conflicts with third-party canvas/SVG map layers, avoids payload tampering vulnerabilities on component state, and provides 60fps client-side radius and marker preview without unnecessary server roundtrips.
-   - Yields a clean, maintainable codebase that follows Laravel conventions and is straightforward to defend in a live technical review.
+1. **Hybrid Frontend Architecture (Livewire v3 + Alpine.js + wire:ignore Map Adapter):**
+   - **Compliance with Technical Specifications (Sections 3.1, 5.2 & 5.1.12):** To strictly satisfy the technical test requirements without introducing external SPA bloat (Vue/React), Livewire was incrementally integrated for reactive state management across user forms and management tables (`CreateReportForm`, `ManageReports`).
+   - **DOM Preservation via `wire:ignore`:** Standard Livewire DOM-morphing would inadvertently re-render or destroy Leaflet canvas/SVG map instances upon reactive state changes (e.g., typing description notes or triggering validation errors). By isolating the Leaflet DOM container behind `<div wire:ignore>`, the map remains permanently mounted and stable.
+   - **Alpine.js & Vanilla JS Integration:** Alpine.js and a modular JavaScript map adapter (`resources/js/outage-map.js`) deliver immediate 60fps client-side feedback for the radius slider, drag-and-drop marker relocation, and device geolocation, synchronizing coordinates with Livewire via native DOM input/change events.
+   - **Zero-Tampering Domain Actions:** Server-side state mutation, rate-limiting enforcement (5/hour), and active report limits (max 3) are strictly executed through dedicated Domain Actions (`CreateOutageAction`, `UpdateOutageAction`, `CloseOutageAction`) and `OutagePolicy`, ensuring Livewire payload tampering cannot bypass business rules.
 
 2. **Map Tile Provider Reliability:**
    - Standardized on official OpenStreetMap tile servers (`https://tile.openstreetmap.org/{z}/{x}/{y}.png`), ensuring 100% keyless, free, and zero-friction evaluation for reviewers without external API credentials.

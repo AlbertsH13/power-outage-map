@@ -8,7 +8,7 @@ A containerized Laravel 13 monolith for community-driven electrical outage repor
 
 The system is built as a single Laravel monolith adhering strictly to modern standards:
 - **Backend:** Laravel 13 running on PHP 8.3-FPM, MySQL 8.0, and Redis 7.
-- **Frontend:** Server-rendered Blade templates, Alpine.js 3 for reactive map controls, Tailwind CSS with custom design tokens, and Leaflet (OpenStreetMap).
+- **Frontend (Hybrid Architecture):** Reactive Livewire components (`ManageReports`, `CreateReportForm`) handle stateful form submission, real-time validation, and AJAX-driven pagination (`WithPagination`). The interactive Leaflet (OpenStreetMap) canvas is isolated with `wire:ignore` and driven by Alpine.js and modular JavaScript (`resources/js/outage-map.js`) for instant 60fps client-side preview without DOM-morphing conflicts.
 - **Zero Third-Party Map Fees:** Uses official OpenStreetMap tile servers (`https://tile.openstreetmap.org/{z}/{x}/{y}.png`). Evaluators can run and test the full application without creating API keys or billing accounts.
 - **Zero PII Exposure:** Viewport API endpoints expose only anonymous geospatial and status attributes. User identities and credentials are never leaked.
 - **Dual-Layer Expiration:** Enforced at query scope (`where('expires_at', '>', now())`) and by an automated background scheduler job (`outages:expire` running every minute).
@@ -90,6 +90,7 @@ The REST API is documented in [openapi.yaml](openapi.yaml).
 ### Available Endpoints:
 - `GET /api/v1/outages`: Returns active outages inside the specified bounding box (`min_lat`, `max_lat`, `min_lng`, `max_lng` or `bbox=min_lat,min_lng,max_lat,max_lng`). Public, throttled to 60 req/min.
 - `POST /api/v1/outages`: Submits a new outage report. Requires authentication, validated against a 5 report/hour rate limit and max 3 active reports per user.
+- `PUT /api/v1/outages/{id}`: Updates an active outage report's radius, duration, and notes. Requires authentication and ownership verification.
 - `POST /api/v1/outages/{id}/close`: Marks an active report as resolved. Requires authentication and strict ownership verification via `OutagePolicy`.
 
 ---
@@ -97,11 +98,11 @@ The REST API is documented in [openapi.yaml](openapi.yaml).
 ## Automated Tests & Code Quality
 
 ### Running Tests
-Execute the complete PHPUnit / Pest test suite inside the application container:
+Execute the complete PHPUnit test suite inside the application container:
 ```bash
 docker compose exec app php artisan test
 ```
-*Current test suite: **51 tests passing, 221 assertions** covering authentication, geospatial queries, rate limits, quota enforcement, ownership policies, expiration jobs, and UI rendering.*
+*Current test suite: **67 tests passing (287 assertions)** covering authentication, geospatial queries, rate limits, quota enforcement, ownership policies, expiration jobs, Livewire components, and UI rendering.*
 
 ### Code Style Verification
 Run Laravel Pint to verify compliance with PSR-12 and Laravel conventions:

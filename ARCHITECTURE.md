@@ -8,7 +8,7 @@ The application runs as a containerized Laravel monolith orchestrated with Docke
 
 ```mermaid
 graph TD
-    Browser["Client Browser - Blade Alpine.js Leaflet"]
+    Browser["Client Browser - Blade Livewire Alpine.js Leaflet"]
     Tiles["OpenStreetMap Tile CDN"]
 
     subgraph Docker_Network ["Docker Compose Internal Network"]
@@ -86,7 +86,6 @@ flowchart TD
 
     UI --> Livewire
     Livewire -->|"Visual Marker and Radius Preview"| Adapter
-    Adapter -->|"GET api v1 outages bbox"| Route
     Livewire --> Actions
     UI -->|"HTTP POST, PUT, PATCH"| Route
     Adapter -->|"GET api v1 outages bbox"| Route
@@ -216,7 +215,7 @@ erDiagram
 
 ### ADR 01: Session-Based Authentication (Laravel Breeze)
 * **Status:** Accepted
-* **Context:** The application is a monolith with server-rendered Blade templates and Alpine.js. We need secure user authentication for managing outage reports.
+* **Context:** The application is a Laravel monolith with server-rendered Blade layouts, reactive Livewire components, and Alpine.js. We need secure user authentication for managing outage reports.
 * **Decision:** Use standard Laravel session cookies with the `web` guard via Laravel Breeze, with sessions stored in Redis.
 * **Why:**
   - Token-based systems (JWT / Sanctum tokens) add unnecessary complexity (token refresh, client storage security) for a monolith.
@@ -371,7 +370,7 @@ flowchart LR
 ### 6.3 Preventing Personal Data Leakage (PII)
 - The public map endpoint uses `PublicOutageResource`, which exposes only: `id`, `latitude`, `longitude`, `radius_km`, `bounding_box`, `status`, `duration_type`, `duration_hours`, `expires_at`, `closed_at`, `created_at`, `description`, and a boolean `is_owner`.
 - `user_id`, user names, emails, and IP addresses are completely excluded.
-- Blade views for guest users do not pass user models into Alpine or inline script tags.
+- Blade views and Livewire components for guest users do not pass user models into Alpine or inline script tags.
 
 ---
 
