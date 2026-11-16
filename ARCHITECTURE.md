@@ -53,7 +53,8 @@ The application separates presentation from domain logic. Controllers stay thin,
 flowchart TD
     subgraph Client ["Client - Browser"]
         UI["Server-Rendered Blade Views"]
-        Alpine["Alpine.js Map and Modal State"]
+        Livewire["Livewire Components - ManageReports and CreateReportForm"]
+        Alpine["Alpine.js and wire:ignore Map Boundary"]
         Adapter["Leaflet Map Adapter - outage-map.js"]
     end
 
@@ -83,8 +84,10 @@ flowchart TD
         SchedulerCron["Laravel Task Scheduler"]
     end
 
-    UI -->|"User interaction and forms"| Alpine
-    Alpine -->|"Visual Marker and Radius Preview"| Adapter
+    UI --> Livewire
+    Livewire -->|"Visual Marker and Radius Preview"| Adapter
+    Adapter -->|"GET api v1 outages bbox"| Route
+    Livewire --> Actions
     UI -->|"HTTP POST, PUT, PATCH"| Route
     Adapter -->|"GET api v1 outages bbox"| Route
 
@@ -300,20 +303,19 @@ erDiagram
 
 ---
 
-### ADR 06: Frontend Architecture (Server-Rendered Blade + Alpine.js + Modular JS Map Adapter)
+### ADR 06: Hybrid Frontend Architecture (Livewire Reactive Components + Blade + Alpine.js + wire:ignore Leaflet Adapter)
 * **Status:** Accepted
-* **Context:** Interactive maps require continuous DOM stability. Heavy component morphing engines can destroy Leaflet SVG/canvas instances, break event listeners, and cause screen flickering during re-renders. Furthermore, slider radius adjustment demands instant 60fps client-side visual feedback without server roundtrips.
+* **Context:** Interactive Leaflet maps require continuous DOM stability. Automated component morphing engines can inadvertently destroy Leaflet SVG/canvas instances, reset viewport state, and detach event listeners during re-renders. Meanwhile, interactive reporting, fast in-place pagination, status resolution, and report editing require reactive, single-page-like UX without full page reloads.
 * **Decision:**
-  - Build frontend pages as clean, server-rendered **Blade templates** with semantic HTML.
-  - Use **Alpine.js** for lightweight, localized client-side interactivity (modals, tabs, form state, slider bindings).
-  - Encapsulate map lifecycle in a modular JavaScript adapter (`resources/js/outage-map.js`) exposing `window.initOutageMap` and `window.initReportPickerMap`.
-  - Let Alpine handle radius changes purely on the client for instant 60fps visual circle feedback.
-  - All form submissions (creation, update, close) submit standard HTTP requests validated by dedicated Laravel Form Requests and Domain Actions on the server.
+  - Adopt a robust hybrid architecture: use **Livewire** components (`CreateReportForm`, `ManageReports`) for reactive form handling, validation errors, real-time feedback, and AJAX-driven pagination using the `WithPagination` trait.
+  - Isolate the Leaflet interactive map instances using Livewire's `wire:ignore` directive on the map container (`<div wire:ignore><div id="picker-map">...</div></div>`).
+  - Use **Alpine.js** and modular JavaScript (`resources/js/outage-map.js`) for lightweight 60fps client-side map interactions (radius slider feedback, geolocation resolution, coordinate syncing).
+  - Business logic, authorization, quota checks, and persistence are strictly delegated to server-side Domain Actions (`CreateOutageAction`, `UpdateOutageAction`, `CloseOutageAction`) and `OutagePolicy`.
 * **Why:**
-  - Prevents map re-initialization, memory leaks, and listener detachment.
-  - Eliminates component payload tampering vectors by keeping authorization and state mutation exclusively in PHP controllers and policies.
-  - Zero third-party runtime weight, keeping the codebase transparent, robust, and easy to explain line-by-line.
-* **Trade-offs:** Radius and coordinate sanity checks exist in both client-side JavaScript (for instant feedback) and server-side Form Requests (for strict security).
+  - `wire:ignore` creates an impervious boundary around Leaflet, preventing DOM diffing from re-initializing the map or causing visual flickers.
+  - Livewire provides seamless reactivity for user-facing tables, pagination, and modals without writing custom AJAX/fetch boilerplate.
+  - Zero heavy SPA frameworks (no Vue or React dependencies required), honoring the Laravel Monolith constraint while achieving modern reactive UX.
+* **Trade-offs:** Livewire properties and Leaflet coordinates are synchronized using DOM event listeners (`input`/`change`) within the component view.
 
 ---
 
