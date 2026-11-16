@@ -32,7 +32,9 @@ class ReportController extends Controller
                     ->orWhere('expires_at', '<=', now());
             })
             ->latest()
-            ->paginate(10);
+            ->paginate(10)
+            ->withQueryString()
+            ->fragment('history-table');
 
         $activeCount = $activeOutages->count();
         $maxActive = (int) config('outage.max_active_per_user', 3);

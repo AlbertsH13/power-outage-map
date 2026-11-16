@@ -153,7 +153,7 @@
                 @endif
             </section>
 
-            <section class="space-y-4 pt-4 border-t border-gray-200">
+            <section id="history-table" class="space-y-4 pt-4 border-t border-gray-200">
                 <div class="flex items-center justify-between">
                     <h3 class="text-base font-bold text-gray-900">
                         History & Past Reports
