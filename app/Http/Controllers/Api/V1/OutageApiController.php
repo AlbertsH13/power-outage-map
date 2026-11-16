@@ -2,16 +2,17 @@
 
 namespace App\Http\Controllers\Api\V1;
 
-use App\Enums\DurationType;
-use App\Enums\OutageStatus;
+use App\Actions\CloseOutageAction;
+use App\Actions\CreateOutageAction;
+use App\Actions\UpdateOutageAction;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\OutageViewportRequest;
 use App\Http\Requests\StoreOutageRequest;
+use App\Http\Requests\UpdateOutageRequest;
 use App\Http\Resources\PublicOutageResource;
 use App\Models\Outage;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Gate;
 
 class OutageApiController extends Controller
 {
@@ -32,75 +33,27 @@ class OutageApiController extends Controller
             ->header('Cache-Control', 'public, max-age=15, stale-while-revalidate=30');
     }
 
-    public function store(StoreOutageRequest $request): JsonResponse
+    public function store(StoreOutageRequest $request, CreateOutageAction $createOutageAction): JsonResponse
     {
-        $user = $request->user();
-
-        $activeCount = Outage::where('user_id', $user->id)
-            ->where('status', OutageStatus::Active)
-            ->where('expires_at', '>', now())
-            ->count();
-
-        $maxActive = config('outage.max_active_per_user', 3);
-
-        if ($activeCount >= $maxActive) {
-            return response()->json([
-                'message' => "You have reached the maximum limit of {$maxActive} active reports.",
-                'errors' => [
-                    'outage' => ["You have reached the maximum limit of {$maxActive} active reports."],
-                ],
-            ], 422);
-        }
-
-        $validated = $request->validated();
-        $durationType = DurationType::from($validated['duration_type']);
-
-        $bbox = Outage::calculateBoundingBox(
-            lat: (float) $validated['latitude'],
-            lng: (float) $validated['longitude'],
-            radiusKm: (float) $validated['radius_km']
-        );
-
-        $expiresAt = match ($durationType) {
-            DurationType::Fixed => now()->addHours((int) $validated['duration_hours']),
-            DurationType::UntilClosed => now()->addHours((int) config('outage.until_closed_hard_cap_hours', 72)),
-        };
-
-        $outage = Outage::create([
-            'user_id' => $user->id,
-            'latitude' => $validated['latitude'],
-            'longitude' => $validated['longitude'],
-            'radius_km' => $validated['radius_km'],
-            'min_lat' => $bbox['min_lat'],
-            'max_lat' => $bbox['max_lat'],
-            'min_lng' => $bbox['min_lng'],
-            'max_lng' => $bbox['max_lng'],
-            'duration_type' => $durationType,
-            'duration_hours' => $durationType === DurationType::Fixed ? (int) $validated['duration_hours'] : null,
-            'status' => OutageStatus::Active,
-            'expires_at' => $expiresAt,
-            'description' => $validated['description'] ?? null,
-        ]);
+        $outage = $createOutageAction->execute($request->user(), $request->validated());
 
         return (new PublicOutageResource($outage))
             ->response()
             ->setStatusCode(201);
     }
 
-    public function close(Request $request, Outage $outage): JsonResponse
+    public function update(UpdateOutageRequest $request, Outage $outage, UpdateOutageAction $updateOutageAction): JsonResponse
     {
-        Gate::authorize('close', $outage);
+        $outage = $updateOutageAction->execute($request->user(), $outage, $request->validated());
 
-        if ($outage->status !== OutageStatus::Active || $outage->expires_at <= now()) {
-            return response()->json([
-                'message' => 'This report is no longer active.',
-            ], 422);
-        }
+        return (new PublicOutageResource($outage))
+            ->response()
+            ->setStatusCode(200);
+    }
 
-        $outage->update([
-            'status' => OutageStatus::Closed,
-            'closed_at' => now(),
-        ]);
+    public function close(Request $request, Outage $outage, CloseOutageAction $closeOutageAction): JsonResponse
+    {
+        $outage = $closeOutageAction->execute($request->user(), $outage);
 
         return (new PublicOutageResource($outage))
             ->response()

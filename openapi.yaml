@@ -44,6 +44,17 @@ paths:
           description: Outage created successfully
         '422':
           description: Validation error or quota exceeded
+  /api/v1/outages/{id}:
+    put:
+      summary: Update an active outage report
+      description: Requires authentication and ownership authorization via Policy.
+      responses:
+        '200':
+          description: Outage updated successfully
+        '403':
+          description: Unauthorized action
+        '422':
+          description: Validation error or inactive report
   /api/v1/outages/{id}/close:
     post:
       summary: Manually close an active outage

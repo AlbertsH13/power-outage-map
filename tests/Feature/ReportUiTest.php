@@ -197,4 +197,113 @@ class ReportUiTest extends TestCase
             'status' => OutageStatus::Active->value,
         ]);
     }
+
+    public function test_owner_can_view_edit_page_for_active_outage(): void
+    {
+        $user = User::factory()->create();
+        $outage = Outage::factory()->create([
+            'user_id' => $user->id,
+            'status' => OutageStatus::Active,
+            'expires_at' => now()->addHours(4),
+            'radius_km' => 2.0,
+        ]);
+
+        $response = $this->actingAs($user)->get(route('reports.edit', $outage));
+
+        $response->assertStatus(200)
+            ->assertSee('Edit Outage Report')
+            ->assertSee('Impact Radius')
+            ->assertSee('Fixed Duration');
+    }
+
+    public function test_owner_can_update_active_outage_radius_and_duration(): void
+    {
+        Carbon::setTestNow('2026-11-16 12:00:00');
+
+        $user = User::factory()->create();
+        $outage = Outage::factory()->create([
+            'user_id' => $user->id,
+            'latitude' => 10.49000000,
+            'longitude' => -66.88000000,
+            'radius_km' => 1.00,
+            'duration_type' => DurationType::Fixed,
+            'duration_hours' => 2,
+            'status' => OutageStatus::Active,
+            'expires_at' => now()->addHours(2),
+            'description' => 'Initial report',
+        ]);
+
+        $response = $this->actingAs($user)->put(route('reports.update', $outage), [
+            'radius_km' => 3.50,
+            'duration_type' => 'fixed',
+            'duration_hours' => 8,
+            'description' => 'Expanded affected area upon inspection.',
+        ]);
+
+        $response->assertRedirect(route('reports.index'))
+            ->assertSessionHas('status', 'Outage report updated successfully.');
+
+        $fresh = $outage->fresh();
+        $this->assertEquals(3.50, $fresh->radius_km);
+        $this->assertEquals(8, $fresh->duration_hours);
+        $this->assertEquals('Expanded affected area upon inspection.', $fresh->description);
+        $this->assertEquals('2026-11-16 20:00:00', $fresh->expires_at->toDateTimeString());
+
+        Carbon::setTestNow();
+    }
+
+    public function test_non_owner_cannot_edit_or_update_another_users_outage(): void
+    {
+        $owner = User::factory()->create();
+        $stranger = User::factory()->create();
+
+        $outage = Outage::factory()->create([
+            'user_id' => $owner->id,
+            'status' => OutageStatus::Active,
+            'expires_at' => now()->addHours(4),
+        ]);
+
+        $this->actingAs($stranger)->get(route('reports.edit', $outage))->assertStatus(403);
+
+        $this->actingAs($stranger)->put(route('reports.update', $outage), [
+            'radius_km' => 2.0,
+            'duration_type' => 'fixed',
+            'duration_hours' => 2,
+        ])->assertStatus(403);
+    }
+
+    public function test_cannot_edit_closed_or_expired_outage(): void
+    {
+        $user = User::factory()->create();
+
+        $closed = Outage::factory()->closed()->create([
+            'user_id' => $user->id,
+        ]);
+
+        $this->actingAs($user)->get(route('reports.edit', $closed))->assertStatus(404);
+
+        $this->actingAs($user)->put(route('reports.update', $closed), [
+            'radius_km' => 2.0,
+            'duration_type' => 'fixed',
+            'duration_hours' => 2,
+        ])->assertSessionHasErrors(['outage']);
+    }
+
+    public function test_update_outage_validates_radius_and_duration_limits(): void
+    {
+        $user = User::factory()->create();
+        $outage = Outage::factory()->create([
+            'user_id' => $user->id,
+            'status' => OutageStatus::Active,
+            'expires_at' => now()->addHours(4),
+        ]);
+
+        $response = $this->actingAs($user)->put(route('reports.update', $outage), [
+            'radius_km' => 0.1,
+            'duration_type' => 'fixed',
+            'duration_hours' => 100,
+        ]);
+
+        $response->assertSessionHasErrors(['radius_km', 'duration_hours']);
+    }
 }

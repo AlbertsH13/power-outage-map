@@ -8,11 +8,11 @@ The application runs as a containerized Laravel monolith orchestrated with Docke
 
 ```mermaid
 graph TD
-    Browser["Client Browser - Blade Livewire Alpine Leaflet"]
-    Tiles["CartoDB and OpenStreetMap Tile CDN"]
+    Browser["Client Browser - Blade Alpine.js Leaflet"]
+    Tiles["OpenStreetMap Tile CDN"]
 
     subgraph Docker_Network ["Docker Compose Internal Network"]
-        Nginx["Nginx Reverse Proxy port 80"]
+        Nginx["Nginx Reverse Proxy port 8080"]
         App["Laravel App - PHP 8.3-FPM"]
         Queue["Queue Worker - queue work"]
         Scheduler["Task Scheduler - schedule work"]
@@ -20,7 +20,7 @@ graph TD
         Redis[("Redis 7 - Cache Sessions Queues")]
     end
 
-    Browser -->|"HTTP and JSON updates"| Nginx
+    Browser -->|"HTTP and JSON requests"| Nginx
     Browser -.->|"Fetches map tiles"| Tiles
     Nginx -->|"FastCGI and static assets"| App
 
@@ -36,7 +36,7 @@ graph TD
 
 | Container | Base Image | Role |
 |---|---|---|
-| `nginx` | `nginx:alpine` | Serves compiled assets (`public/build`), terminates HTTP, and forwards PHP requests to FastCGI. |
+| `nginx` | `nginx:1.27-alpine` | Serves compiled assets (`public/build`), terminates HTTP, and forwards PHP requests to FastCGI. |
 | `app` | `php:8.3-fpm-alpine` | Runs the monolithic Laravel application as non-root `www-data`. |
 | `queue` | Same as `app` | Processes asynchronous jobs (status updates, cleanup tasks). |
 | `scheduler` | Same as `app` | Runs `php artisan schedule:work` every minute. |
@@ -47,14 +47,14 @@ graph TD
 
 ## 2. Application Layer & Request Flow
 
-The application separates presentation from domain logic. Controllers and Livewire components stay thin, delegating business rules to Action classes and authorization to Policies.
+The application separates presentation from domain logic. Controllers stay thin, delegating business rules to Action classes and authorization to Policies.
 
 ```mermaid
 flowchart TD
     subgraph Client ["Client - Browser"]
-        UI["Blade Views and Livewire Components"]
-        Alpine["Alpine.js Map Component"]
-        Adapter["Leaflet Map Adapter"]
+        UI["Server-Rendered Blade Views"]
+        Alpine["Alpine.js Map and Modal State"]
+        Adapter["Leaflet Map Adapter - outage-map.js"]
     end
 
     subgraph HTTP ["Routing and Middleware"]
@@ -64,14 +64,14 @@ flowchart TD
     end
 
     subgraph Presentation ["Presentation Layer"]
-        LWComponent["Livewire Components - CreateReport and MyReports"]
-        ApiController["OutageApiController - GET api v1 outages"]
+        ReportController["ReportController - Web Pages and CRUD"]
+        ApiController["OutageApiController - GET, POST, PUT, CLOSE"]
         Resource["PublicOutageResource - PII free"]
     end
 
     subgraph Domain ["Domain Layer"]
         Policy["OutagePolicy - Server ownership checks"]
-        FormRequest["Livewire Form and Validation Rules"]
+        FormRequest["StoreOutageRequest and UpdateOutageRequest"]
         Actions["Domain Actions - Create, Update, Close Outage"]
         ActionLimiter["Action-Level Rate Limiter and Active Cap Check"]
     end
@@ -79,25 +79,26 @@ flowchart TD
     subgraph Persistence ["Persistence and Workers"]
         Model["Outage Eloquent Model - Scopes and Enums"]
         DB[("MySQL 8 Storage")]
-        Job["ExpireOutagesJob"]
+        Job["ExpireOutagesCommand"]
         SchedulerCron["Laravel Task Scheduler"]
     end
 
-    UI -->|"User interaction"| Alpine
+    UI -->|"User interaction and forms"| Alpine
     Alpine -->|"Visual Marker and Radius Preview"| Adapter
-    UI -->|"Livewire state mutation"| Route
-    Alpine -->|"GET api v1 outages bbox"| Route
+    UI -->|"HTTP POST, PUT, PATCH"| Route
+    Adapter -->|"GET api v1 outages bbox"| Route
 
     Route --> AuthMid
     AuthMid --> ThrottleMid
-    ThrottleMid --> LWComponent
+    ThrottleMid --> ReportController
     ThrottleMid --> ApiController
 
     ApiController --> Model
     Model --> Resource
     Resource -->|"JSON without PII"| Adapter
 
-    LWComponent --> FormRequest
+    ReportController --> FormRequest
+    ApiController --> FormRequest
     FormRequest --> Policy
     Policy --> Actions
     Actions --> ActionLimiter
@@ -105,7 +106,7 @@ flowchart TD
     Model --> DB
 
     SchedulerCron -->|"Every Minute"| Job
-    Job --> Actions
+    Job --> Model
 ```
 
 ---
@@ -130,20 +131,20 @@ erDiagram
 
     OUTAGES {
         bigint id PK
-        bigint user_id FK "Indexed"
-        decimal latitude "decimal"
-        decimal longitude "decimal"
-        decimal radius_km "0.50 to 25.00 km"
-        decimal min_lat "Indexed"
-        decimal max_lat "Indexed"
-        decimal min_lng "Indexed"
-        decimal max_lng "Indexed"
-        enum duration_type "fixed or until_closed"
-        int duration_hours "Nullable 1-72"
-        string status "active closed expired - Indexed"
-        timestamp expires_at "UTC - Indexed"
+        bigint user_id FK
+        decimal latitude "10 8"
+        decimal longitude "11 8"
+        decimal radius_km "5 2"
+        decimal min_lat "10 8 Indexed"
+        decimal max_lat "10 8 Indexed"
+        decimal min_lng "11 8 Indexed"
+        decimal max_lng "11 8 Indexed"
+        enum duration_type "fixed until_closed"
+        smallint duration_hours "Nullable"
+        enum status "active closed expired Indexed"
+        timestamp expires_at "Indexed"
         timestamp closed_at "Nullable"
-        text description "Nullable max 500 chars"
+        string description "500 chars Nullable"
         timestamp created_at
         timestamp updated_at
     }
@@ -176,39 +177,45 @@ erDiagram
 
 ---
 
-## 4. HTTP Surface & Livewire Actions
+## 4. HTTP Surface & Domain Actions
 
 ### 4.1 Route Table
 
 | URI | Method | Handler | Middleware | Auth | Description |
 |---|---|---|---|---|---|
-| `/` | `GET` | `LandingPageController` | `web` | No | Public landing page with embedded map. Returns HTTP 200. |
-| `/map` | `GET` | `PublicMapController` | `web` | No | Fullscreen public outage map. Returns HTTP 200. |
-| `/api/v1/outages` | `GET` | `Api\V1\OutageApiController@index` | `api`, `throttle:60,1` | No | Viewport JSON feed (`PublicOutageResource[]`, zero PII). |
-| `/reports/create` | `GET` | `Pages\Reports\CreateReport` | `web`, `auth` | Yes | Outage submission page (Livewire). Returns HTTP 200. |
-| `/my-reports` | `GET` | `Pages\Reports\MyReports` | `web`, `auth` | Yes | User reports dashboard (Livewire, paginated). Returns HTTP 200. |
-| `/login` | `GET`, `POST` | Breeze / Fortify Auth | `web`, `guest`, `throttle:login` | No | Login form and credential validation. |
-| `/register` | `GET`, `POST` | Breeze / Fortify Auth | `web`, `guest`, `throttle:register` | No | Registration form and session creation. |
-| `/logout` | `POST` | Breeze / Fortify Auth | `web`, `auth` | Yes | Invalidate session, regenerate CSRF token, redirect to `/`. |
+| `/` | `GET` | `LandingPageController` | `web` | No | Public landing page with embedded preview map. Returns HTTP 200. |
+| `/map` | `GET` | `PublicMapController` | `web` | No | Fullscreen public outage map with auto-refresh. Returns HTTP 200. |
+| `/reports/create` | `GET` | `ReportController@create` | `web`, `auth` | Yes | Outage submission page with map picker. Returns HTTP 200. |
+| `/reports` | `POST` | `ReportController@store` | `web`, `auth`, `throttle:create-outage` | Yes | Submit new report. Calls `CreateOutageAction`. |
+| `/my-reports` | `GET` | `ReportController@index` | `web`, `auth` | Yes | User reports dashboard (paginated). Returns HTTP 200. |
+| `/reports/{outage}/edit` | `GET` | `ReportController@edit` | `web`, `auth` | Yes | Edit report view. Verified by `OutagePolicy@update`. |
+| `/reports/{outage}` | `PUT`, `PATCH` | `ReportController@update` | `web`, `auth` | Yes | Update active report. Calls `UpdateOutageAction`. |
+| `/reports/{outage}/close` | `POST`, `PATCH` | `ReportController@close` | `web`, `auth` | Yes | Resolve outage manually. Calls `CloseOutageAction`. |
+| `/api/v1/outages` | `GET` | `Api\V1\OutageApiController@index` | `throttle:outages-api` | No | Viewport JSON feed (`PublicOutageResource[]`, zero PII). |
+| `/api/v1/outages` | `POST` | `Api\V1\OutageApiController@store` | `auth`, `throttle:create-outage` | Yes | Create report via REST. Calls `CreateOutageAction`. |
+| `/api/v1/outages/{outage}` | `PUT`, `PATCH` | `Api\V1\OutageApiController@update` | `auth` | Yes | Update report via REST. Calls `UpdateOutageAction`. |
+| `/api/v1/outages/{outage}/close` | `POST`, `PATCH` | `Api\V1\OutageApiController@close` | `auth` | Yes | Resolve outage via REST. Calls `CloseOutageAction`. |
+| `/login` | `GET`, `POST` | Breeze Auth | `web`, `guest`, `throttle:login` | No | Login form and credential validation. |
+| `/register` | `GET`, `POST` | Breeze Auth | `web`, `guest`, `throttle:register` | No | Registration form and session creation. |
+| `/logout` | `POST` | Breeze Auth | `web`, `auth` | Yes | Invalidate session, regenerate CSRF token, redirect to `/`. |
 
-### 4.2 State-Mutating Livewire Actions
+### 4.2 Domain Actions Layer
 
-| Component | Action | Authorization | Checks & Limits | Side Effects |
+| Action | Responsibility | Authorization | Business Rules & Quotas | Side Effects |
 |---|---|---|---|---|
-| `CreateReport` | `save()` | Authenticated user | 5 reports/hr limit + max 3 active reports | Calls `CreateOutageReportAction`, redirects to `/my-reports`. |
-| `MyReports` | `editReport($id)` | `OutagePolicy@update` | Report must be active | Loads record into the edit modal state. |
-| `MyReports` | `updateReport()` | `OutagePolicy@update` | Validates radius, duration, description | Calls `UpdateOutageReportAction`, refreshes table. |
-| `MyReports` | `closeReport($id)` | `OutagePolicy@close` | Report must be active | Calls `CloseOutageReportAction`, marks `closed_at = now()`. |
+| `CreateOutageAction` | Create new outage | Authenticated user | Max 3 active reports quota check; 72h safety cap for `until_closed`. | Computes bounding box; persists record with `status = active`. |
+| `UpdateOutageAction` | Update active outage | `OutagePolicy@update` | Report must be currently active; 72h safety cap from creation. | Recalculates bounding box on radius change; updates record. |
+| `CloseOutageAction` | Manually resolve outage | `OutagePolicy@close` | Report must be currently active (`expires_at > now()`). | Sets `status = closed` and `closed_at = now()`. |
 
 ---
 
 ## 5. Architecture Decision Records (ADRs)
 
-### ADR 01: Session-Based Authentication (Laravel Breeze / Fortify)
+### ADR 01: Session-Based Authentication (Laravel Breeze)
 * **Status:** Accepted
-* **Context:** The application is a monolith with server-rendered Blade templates and Livewire. We need secure user authentication for managing outage reports.
-* **Decision:** Use standard Laravel session cookies with the `web` guard (via Laravel Breeze or Fortify), with sessions stored in Redis.
-* **Why:** 
+* **Context:** The application is a monolith with server-rendered Blade templates and Alpine.js. We need secure user authentication for managing outage reports.
+* **Decision:** Use standard Laravel session cookies with the `web` guard via Laravel Breeze, with sessions stored in Redis.
+* **Why:**
   - Token-based systems (JWT / Sanctum tokens) add unnecessary complexity (token refresh, client storage security) for a monolith.
   - Laravel's built-in session guard provides out-of-the-box protection against CSRF, session fixation (`session()->regenerate()`), and cookie hijacking (`HttpOnly`, `SameSite=Lax`).
   - Storing sessions in Redis keeps the PHP-FPM containers stateless so we can scale horizontally.
@@ -286,36 +293,39 @@ erDiagram
 * **Why:**
   - Zero cost, 100% free, zero API keys, zero watermarks, and zero setup friction for anyone reviewing the repository.
   - Direct OpenStreetMap tiles (`https://tile.openstreetmap.org/{z}/{x}/{y}.png`) ensure reliable public serving without third-party API key enforcement or watermarks.
-  - The JavaScript adapter pattern keeps Leaflet APIs out of Livewire and Blade. If a project requires Google Maps in the future, only the adapter needs to be swapped.
+  - The JavaScript adapter pattern keeps Leaflet APIs out of views. If a project requires Google Maps in the future, only the adapter needs to be swapped.
   - If a Google Maps key is provided in `.env`, it is injected at runtime via Blade layout configuration (`config('services.maps.key')`), never baked into Vite bundles.
   - **Browser Key Hardening (Production):** If an external provider key is exposed in client-side HTML, exposure risk is mitigated directly in the provider's cloud console: (1) HTTP Referrer allowlisting locked to the production domain (`https://app.example.com/*`), (2) API scoping restricted exclusively to the Maps JavaScript API (disabling Geocoding, Places, or Elevation APIs on that credential), and (3) daily request quota caps with budget alerts to prevent bill-shock abuse.
 * **Trade-offs:** Leaflet is 2D-only, which is completely sufficient for an outage circle map.
 
 ---
 
-### ADR 06: Frontend Integration (Livewire + Alpine.js + Leaflet)
+### ADR 06: Frontend Architecture (Server-Rendered Blade + Alpine.js + Modular JS Map Adapter)
 * **Status:** Accepted
-* **Context:** Livewire's DOM morphing can destroy JavaScript map instances and drop event listeners during component re-renders. Additionally, adjusting the radius slider must update the map instantly without server latency, and server-rendered views must display dates in the user's local timezone.
+* **Context:** Interactive maps require continuous DOM stability. Heavy component morphing engines can destroy Leaflet SVG/canvas instances, break event listeners, and cause screen flickering during re-renders. Furthermore, slider radius adjustment demands instant 60fps client-side visual feedback without server roundtrips.
 * **Decision:**
-  - Mark the map container with `wire:ignore`.
-  - Let an Alpine.js component (`x-data="outageMap(...)"`) manage the map lifecycle, Leaflet instance, and marker/circle drawing.
-  - Handle radius slider changes purely on the client in Alpine.js for instant 60fps feedback.
-  - Sync coordinates and radius to Livewire using `$wire.set(...)` or browser events when the user finishes adjusting them.
-  - **SSR Timezone Strategy:** All timestamps are stored in UTC in the database. In the browser, Alpine.js resolves the user's local timezone using `Intl.DateTimeFormat().resolvedOptions().timeZone` to render formatted times client-side, while syncing that IANA timezone string into the user's Laravel session (via cookie or initial lightweight sync) so server-rendered Blade templates can localize timestamps using Carbon (`$date->setTimezone(session('timezone'))`).
-* **Why:** Prevents map flickering or re-initialization when Livewire re-renders validation errors or flash messages. Keeps the slider interaction smooth and ensures dates match the user's wall clock regardless of server timezone.
-* **Trade-offs:** Coordinate validation exists in both client-side JavaScript (for map limits) and server-side PHP Form Requests (for security).
+  - Build frontend pages as clean, server-rendered **Blade templates** with semantic HTML.
+  - Use **Alpine.js** for lightweight, localized client-side interactivity (modals, tabs, form state, slider bindings).
+  - Encapsulate map lifecycle in a modular JavaScript adapter (`resources/js/outage-map.js`) exposing `window.initOutageMap` and `window.initReportPickerMap`.
+  - Let Alpine handle radius changes purely on the client for instant 60fps visual circle feedback.
+  - All form submissions (creation, update, close) submit standard HTTP requests validated by dedicated Laravel Form Requests and Domain Actions on the server.
+* **Why:**
+  - Prevents map re-initialization, memory leaks, and listener detachment.
+  - Eliminates component payload tampering vectors by keeping authorization and state mutation exclusively in PHP controllers and policies.
+  - Zero third-party runtime weight, keeping the codebase transparent, robust, and easy to explain line-by-line.
+* **Trade-offs:** Radius and coordinate sanity checks exist in both client-side JavaScript (for instant feedback) and server-side Form Requests (for strict security).
 
 ---
 
 ### ADR 07: Public Map Data Retrieval via Dedicated JSON API
 * **Status:** Accepted
-* **Context:** The public map must load outages for the visible map area and update when users pan or zoom. We could fetch this data through Livewire actions or through a dedicated JSON endpoint.
-* **Decision:** Use a lightweight, versioned JSON endpoint: `GET /api/v1/outages?bbox=minLat,minLng,maxLat,maxLng`, queried directly by the map adapter using `fetch()`.
+* **Context:** The public map must load outages for the visible map area and update when users pan or zoom.
+* **Decision:** Use a lightweight, versioned JSON endpoint: `GET /api/v1/outages?min_lat=...&min_lng=...&max_lat=...&max_lng=...`, queried directly by the map adapter using debounced `fetch()`.
 * **Why:**
-  - Map pan and zoom trigger frequent viewport changes. Handling these through Livewire would trigger full component lifecycle rehydration, encrypting and sending component payloads on every move.
+  - Map pan and zoom trigger frequent viewport changes. Handling these through full-page loads would cause excessive latency.
   - A REST controller with an Eloquent API Resource executes in milliseconds, uses minimal memory, and strips all personal data before output.
-  - Enables HTTP client-side debouncing (300ms) and standard browser/reverse-proxy caching (`Cache-Control: public, max-age=15`).
-* **Trade-offs:** Requires maintaining a dedicated API route and controller alongside Livewire components.
+  - Enables HTTP client-side debouncing (300ms) and standard browser/reverse-proxy caching (`Cache-Control: public, max-age=15, stale-while-revalidate=30`).
+* **Trade-offs:** Requires maintaining a dedicated API route and resource alongside web views.
 
 ---
 
@@ -337,29 +347,28 @@ flowchart LR
     Action --> Out["Response without PII"]
 ```
 
-### 6.1 Guarding Against Livewire Payload Tampering
-In Livewire, request payloads sent to `/livewire/update` can be modified by the client. We enforce:
-- **Session-Based Ownership:** The reporting `user_id` is never accepted from component properties or client parameters. It is always resolved directly from `auth()->id()`.
+### 6.1 Guarding Against Request Parameter Tampering
+- **Session-Based Ownership:** The reporting `user_id` is never accepted from client input or query strings. It is always resolved directly from `auth()->id()`.
 - **Policy Enforcement on Every Mutation:** Before updating or closing a report, actions call `Gate::authorize('update', $outage)` and `Gate::authorize('close', $outage)`. Tampering with an ID to modify someone else's outage immediately returns an HTTP 403 Forbidden.
 
 ### 6.2 Application-Level Rate Limiting & Active Report Caps
-Middleware alone is not enough because Livewire requests hit a single `/livewire/update` route. We enforce limits inside the domain layer:
-- **Rate Limiting:** Inside `CreateOutageReportAction`, we use Laravel's `RateLimiter::attempt()` keyed by user ID (5 reports/hour).
-- **Active Reports Limit:** Before creating a report, the action checks:
+- **Rate Limiting:** In `AppServiceProvider`, we register the `create-outage` rate limiter keyed by user ID (or IP for guests) with a default of 5 reports/hour.
+- **Active Reports Limit:** Inside `CreateOutageAction`, the system checks:
   ```php
   $activeCount = Outage::where('user_id', $user->id)
-      ->where('status', OutageStatus::Active)
-      ->where('expires_at', '>', now())
+      ->active()
       ->count();
 
-  if ($activeCount >= config('outages.max_active_per_user', 3)) {
-      throw new ActiveOutageLimitExceededException();
+  if ($activeCount >= config('outage.max_active_per_user', 3)) {
+      throw ValidationException::withMessages([
+          'outage' => "You have reached the maximum limit of {$maxActive} active reports.",
+      ]);
   }
   ```
 
 ### 6.3 Preventing Personal Data Leakage (PII)
-- The public map endpoint uses `PublicOutageResource`, which exposes only: `id`, `latitude`, `longitude`, `radius_km`, `status`, `expires_at`, `duration_type`, and `description`.
-- `user_id`, user names, emails, IP addresses, and timestamps other than start/expiration are completely excluded.
+- The public map endpoint uses `PublicOutageResource`, which exposes only: `id`, `latitude`, `longitude`, `radius_km`, `bounding_box`, `status`, `duration_type`, `duration_hours`, `expires_at`, `closed_at`, `created_at`, `description`, and a boolean `is_owner`.
+- `user_id`, user names, emails, and IP addresses are completely excluded.
 - Blade views for guest users do not pass user models into Alpine or inline script tags.
 
 ---
@@ -375,13 +384,18 @@ graph TD
     Edge -->|"GET api v1 outages bbox 15s TTL"| MicroCache["Micro-Cached JSON"]
     
     Edge -->|"Cache Misses and Auth Reports"| Nginx["Nginx Reverse Proxy"]
-    Nginx --> AppPool["PHP-FPM Workers - Horizontally Scaled"]
-    AppPool --> MasterDB[("MySQL Primary - Writes")]
-    AppPool --> ReplicaDB[("MySQL Read Replica - Viewport Queries")]
-    AppPool --> RedisCluster[("Redis - Sessions and Rate Limits")]
+    AppPool["PHP-FPM Workers - Horizontally Scaled"]
+    MasterDB[("MySQL Primary - Writes")]
+    ReplicaDB[("MySQL Read Replica - Viewport Queries")]
+    RedisCluster[("Redis - Sessions and Rate Limits")]
+
+    Nginx --> AppPool
+    AppPool --> MasterDB
+    AppPool --> ReplicaDB
+    AppPool --> RedisCluster
 ```
 
-1. **Decoupled Viewport Queries:** Serving map data via `GET /api/v1/outages` instead of Livewire means passive viewers do not trigger Livewire hydration or session writes.
+1. **Decoupled Viewport Queries:** Serving map data via `GET /api/v1/outages` allows passive viewers to fetch updates without writing sessions or running heavy overhead.
 2. **HTTP Micro-Caching:** Responses from `/api/v1/outages` include `Cache-Control: public, max-age=15, stale-while-revalidate=30`. During a spike, identical viewport requests from the same city are served from cache, reducing database queries by over 90%.
 3. **Database Read/Write Splitting:** Read queries for bounding-box coordinates can be routed to MySQL read replicas, keeping the primary database free for report submissions and status updates.
-4. **Independent Queue Workers:** Expiration cleanup and notifications run in background workers, ensuring web request response times remain unaffected by background tasks.
+4. **Independent Queue Workers:** Expiration cleanup and background commands run in isolated worker containers, ensuring web request response times remain unaffected by background tasks.

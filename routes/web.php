@@ -20,6 +20,8 @@ Route::middleware('auth')->group(function () {
         ->middleware('throttle:create-outage')
         ->name('reports.store');
     Route::get('/my-reports', [ReportController::class, 'index'])->name('reports.index');
+    Route::get('/reports/{outage}/edit', [ReportController::class, 'edit'])->name('reports.edit');
+    Route::match(['put', 'patch'], '/reports/{outage}', [ReportController::class, 'update'])->name('reports.update');
     Route::match(['post', 'patch'], '/reports/{outage}/close', [ReportController::class, 'close'])->name('reports.close');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -35,6 +37,8 @@ Route::prefix('api/v1')->group(function () {
     Route::middleware(['auth', 'throttle:create-outage'])->group(function () {
         Route::post('/outages', [OutageApiController::class, 'store'])
             ->name('api.outages.store');
+        Route::match(['put', 'patch'], '/outages/{outage}', [OutageApiController::class, 'update'])
+            ->name('api.outages.update');
         Route::match(['post', 'patch'], '/outages/{outage}/close', [OutageApiController::class, 'close'])
             ->name('api.outages.close');
     });

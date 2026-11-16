@@ -25,7 +25,14 @@
         </div>
     </x-slot>
 
-    <div class="py-8">
+    <div class="py-8" x-data="{
+        modalOpen: false,
+        editData: { id: null, radius_km: 1, duration_type: 'fixed', duration_hours: 4, description: '', action_url: '' },
+        openEditModal(data) {
+            this.editData = Object.assign({}, data);
+            this.modalOpen = true;
+        }
+    }">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
             @if (session('status'))
                 <div class="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800 flex items-center justify-between">
@@ -117,13 +124,28 @@
                                         View on Map &rarr;
                                     </a>
 
-                                    <form method="POST" action="{{ route('reports.close', $outage) }}">
-                                        @csrf
-                                        @method('PATCH')
-                                        <button type="submit" onclick="return confirm('Are you sure you want to mark this outage as resolved?')" class="px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 shadow-xs transition">
-                                            Mark as Resolved
+                                    <div class="flex items-center gap-1.5">
+                                        <button type="button"
+                                                @click="openEditModal({{ json_encode([
+                                                    'id' => $outage->id,
+                                                    'radius_km' => (float) $outage->radius_km,
+                                                    'duration_type' => $outage->duration_type->value,
+                                                    'duration_hours' => $outage->duration_hours ?? 4,
+                                                    'description' => $outage->description ?? '',
+                                                    'action_url' => route('reports.update', $outage),
+                                                ]) }})"
+                                                class="px-2.5 py-1.5 rounded-lg border border-gray-300 bg-white text-gray-700 text-xs font-semibold hover:bg-gray-50 shadow-xs transition">
+                                            Edit
                                         </button>
-                                    </form>
+
+                                        <form method="POST" action="{{ route('reports.close', $outage) }}">
+                                            @csrf
+                                            @method('PATCH')
+                                            <button type="submit" onclick="return confirm('Are you sure you want to mark this outage as resolved?')" class="px-2.5 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 shadow-xs transition">
+                                                Mark as Resolved
+                                            </button>
+                                        </form>
+                                    </div>
                                 </div>
                             </div>
                         @endforeach
@@ -148,42 +170,50 @@
                             <table class="w-full text-left text-xs">
                                 <thead class="bg-gray-50 text-gray-600 font-semibold border-b border-gray-200">
                                     <tr>
-                                        <th class="py-3 px-4">Status</th>
-                                        <th class="py-3 px-4">Coordinates</th>
+                                        <th class="py-3 px-4">Location</th>
                                         <th class="py-3 px-4">Radius</th>
+                                        <th class="py-3 px-4">Duration</th>
+                                        <th class="py-3 px-4">Status</th>
                                         <th class="py-3 px-4">Reported</th>
-                                        <th class="py-3 px-4">Closed / Expired</th>
-                                        <th class="py-3 px-4">Description</th>
+                                        <th class="py-3 px-4">Ended</th>
+                                        <th class="py-3 px-4">Notes</th>
                                     </tr>
                                 </thead>
-                                <tbody class="divide-y divide-gray-100 text-gray-700">
-                                    @foreach ($pastOutages as $past)
-                                        <tr class="hover:bg-gray-50/50 transition">
+                                <tbody class="divide-y divide-gray-100">
+                                    @foreach ($pastOutages as $outage)
+                                        <tr class="hover:bg-gray-50/75 transition">
+                                            <td class="py-3 px-4 font-mono font-medium text-gray-800">
+                                                {{ number_format($outage->latitude, 3) }}, {{ number_format($outage->longitude, 3) }}
+                                            </td>
+                                            <td class="py-3 px-4 text-gray-700">
+                                                {{ $outage->radius_km }} km
+                                            </td>
+                                            <td class="py-3 px-4 text-gray-600">
+                                                {{ $outage->duration_type === App\Enums\DurationType::Fixed ? $outage->duration_hours.'h' : 'Until closed' }}
+                                            </td>
                                             <td class="py-3 px-4">
-                                                @if ($past->status === App\Enums\OutageStatus::Closed)
-                                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-blue-100 text-blue-700">
+                                                @if ($outage->status === App\Enums\OutageStatus::Closed)
+                                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
                                                         Resolved
                                                     </span>
-                                                @else
-                                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-gray-100 text-gray-700">
+                                                @elseif ($outage->status === App\Enums\OutageStatus::Expired || $outage->expires_at <= now())
+                                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-gray-100 text-gray-600">
                                                         Expired
+                                                    </span>
+                                                @else
+                                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+                                                        {{ ucfirst($outage->status->value) }}
                                                     </span>
                                                 @endif
                                             </td>
-                                            <td class="py-3 px-4 font-mono">
-                                                {{ number_format($past->latitude, 4) }}, {{ number_format($past->longitude, 4) }}
-                                            </td>
-                                            <td class="py-3 px-4 font-medium">
-                                                {{ $past->radius_km }} km
+                                            <td class="py-3 px-4 text-gray-500">
+                                                {{ $outage->created_at->format('M j, Y H:i') }}
                                             </td>
                                             <td class="py-3 px-4 text-gray-500">
-                                                {{ $past->created_at->format('M d, Y H:i') }}
+                                                {{ $outage->closed_at ? $outage->closed_at->format('M j, Y H:i') : $outage->expires_at->format('M j, Y H:i') }}
                                             </td>
-                                            <td class="py-3 px-4 text-gray-500">
-                                                {{ $past->closed_at ? $past->closed_at->format('M d, Y H:i') : $past->expires_at->format('M d, Y H:i') }}
-                                            </td>
-                                            <td class="py-3 px-4 text-gray-600 max-w-xs truncate">
-                                                {{ $past->description ?: '—' }}
+                                            <td class="py-3 px-4 text-gray-600 max-w-xs truncate" title="{{ $outage->description }}">
+                                                {{ $outage->description ?: '—' }}
                                             </td>
                                         </tr>
                                     @endforeach
@@ -199,6 +229,83 @@
                     </div>
                 @endif
             </section>
+        </div>
+
+        <div x-show="modalOpen" x-cloak class="fixed inset-0 z-50 overflow-y-auto" style="display: none;">
+            <div class="fixed inset-0 bg-black/50 backdrop-blur-xs transition-opacity" @click="modalOpen = false"></div>
+
+            <div class="flex min-h-full items-center justify-center p-4">
+                <div class="relative w-full max-w-lg rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-xl space-y-5" @click.stop>
+                    <div class="flex items-center justify-between border-b border-[var(--color-border)] pb-3">
+                        <h3 class="text-base font-bold text-gray-900" x-text="`Edit Outage Report #${editData.id}`"></h3>
+                        <button type="button" @click="modalOpen = false" class="text-gray-400 hover:text-gray-600 text-base font-bold">
+                            &times;
+                        </button>
+                    </div>
+
+                    <form method="POST" :action="editData.action_url" class="space-y-4">
+                        @csrf
+                        @method('PUT')
+
+                        <div>
+                            <div class="flex items-center justify-between">
+                                <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider">
+                                    Impact Radius (km)
+                                </label>
+                                <span class="font-mono text-sm font-bold text-[var(--color-accent)]" x-text="`${Number(editData.radius_km).toFixed(2)} km`"></span>
+                            </div>
+                            <input type="range" min="0.5" max="25" step="0.1" x-model="editData.radius_km" class="w-full mt-2 accent-[var(--color-accent)]">
+                            <input type="number" name="radius_km" min="0.5" max="25" step="0.01" x-model="editData.radius_km" required
+                                   class="mt-1 block w-full rounded-lg border-[var(--color-border)] text-sm shadow-xs focus:border-[var(--color-accent)] focus:ring-[var(--color-accent)]">
+                        </div>
+
+                        <div class="space-y-2">
+                            <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider">
+                                Estimated Duration
+                            </label>
+                            <div class="grid grid-cols-2 gap-3">
+                                <label class="relative flex items-center p-2.5 rounded-xl border cursor-pointer transition text-xs"
+                                       :class="editData.duration_type === 'fixed' ? 'border-[var(--color-accent)] bg-red-50/50' : 'border-[var(--color-border)]'">
+                                    <input type="radio" name="duration_type" value="fixed" x-model="editData.duration_type" class="sr-only">
+                                    <span class="font-bold text-gray-900">Fixed Hours</span>
+                                </label>
+                                <label class="relative flex items-center p-2.5 rounded-xl border cursor-pointer transition text-xs"
+                                       :class="editData.duration_type === 'until_closed' ? 'border-[var(--color-accent)] bg-red-50/50' : 'border-[var(--color-border)]'">
+                                    <input type="radio" name="duration_type" value="until_closed" x-model="editData.duration_type" class="sr-only">
+                                    <span class="font-bold text-gray-900">Until Resolved</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div x-show="editData.duration_type === 'fixed'" class="space-y-1">
+                            <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider">
+                                Duration in Hours (1 to 72)
+                            </label>
+                            <input type="number" name="duration_hours" min="1" max="72" x-model="editData.duration_hours"
+                                   :required="editData.duration_type === 'fixed'"
+                                   class="block w-full rounded-lg border-[var(--color-border)] text-sm shadow-xs focus:border-[var(--color-accent)] focus:ring-[var(--color-accent)]">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider">
+                                Description (Optional)
+                            </label>
+                            <textarea name="description" rows="2" maxlength="500" x-model="editData.description"
+                                      class="mt-1 block w-full rounded-lg border-[var(--color-border)] text-sm shadow-xs focus:border-[var(--color-accent)] focus:ring-[var(--color-accent)]"
+                                      placeholder="Notes or details..."></textarea>
+                        </div>
+
+                        <div class="pt-3 border-t border-[var(--color-border)] flex items-center justify-end gap-2">
+                            <button type="button" @click="modalOpen = false" class="px-3.5 py-1.5 rounded-lg border border-[var(--color-border)] text-xs font-semibold text-gray-700 hover:bg-gray-50 transition">
+                                Cancel
+                            </button>
+                            <x-primary-button>
+                                Save Changes
+                            </x-primary-button>
+                        </div>
+                    </form>
+                </div>
+            </div>
         </div>
     </div>
 </x-app-layout>
