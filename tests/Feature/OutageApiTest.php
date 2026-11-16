@@ -256,6 +256,29 @@ class OutageApiTest extends TestCase
             ]);
     }
 
+    public function test_user_cannot_exceed_rate_limit_when_creating_outages(): void
+    {
+        $user = User::factory()->create();
+
+        $payload = [
+            'latitude' => 10.4910,
+            'longitude' => -66.8620,
+            'radius_km' => 2.50,
+            'duration_type' => 'fixed',
+            'duration_hours' => 4,
+        ];
+
+        for ($i = 1; $i <= 5; $i++) {
+            $response = $this->actingAs($user)->postJson('/api/v1/outages', $payload);
+            $response->assertStatus(201);
+            Outage::find($response->json('data.id'))->update(['status' => OutageStatus::Closed]);
+        }
+
+        $this->actingAs($user)
+            ->postJson('/api/v1/outages', $payload)
+            ->assertStatus(429);
+    }
+
     public function test_owner_can_manually_close_active_outage(): void
     {
         $user = User::factory()->create();
