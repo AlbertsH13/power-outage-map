@@ -73,10 +73,12 @@
                 <span class="w-3.5 h-3.5 rounded-full bg-red-500/40 border-2 border-red-600 inline-block"></span>
                 <span class="text-gray-700">Active Power Outage</span>
             </div>
-            <div class="flex items-center gap-2">
-                <span class="w-3.5 h-3.5 rounded-full bg-blue-500/40 border-2 border-blue-600 border-dashed inline-block"></span>
-                <span class="text-gray-700">Your Report</span>
-            </div>
+            @auth
+                <div class="flex items-center gap-2">
+                    <span class="w-3.5 h-3.5 rounded-full bg-blue-500/40 border-2 border-blue-600 border-dashed inline-block"></span>
+                    <span class="text-gray-700">Your Report</span>
+                </div>
+            @endauth
             <p class="text-[10px] text-gray-500 pt-1 border-t border-gray-100">
                 Click any circle to view impact radius and estimated resolution time.
             </p>

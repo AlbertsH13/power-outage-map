@@ -28,7 +28,9 @@ class MapPageTest extends TestCase
         $response->assertStatus(200)
             ->assertSee('outage-map')
             ->assertSee('Power Outage Map')
-            ->assertSee('Map Legend');
+            ->assertSee('Map Legend')
+            ->assertSee('Active Power Outage')
+            ->assertDontSee('Your Report');
     }
 
     public function test_authenticated_user_can_view_landing_and_map_page(): void
@@ -45,6 +47,7 @@ class MapPageTest extends TestCase
             ->get('/map')
             ->assertStatus(200)
             ->assertSee('outage-map')
-            ->assertSee('My Reports');
+            ->assertSee('My Reports')
+            ->assertSee('Your Report');
     }
 }

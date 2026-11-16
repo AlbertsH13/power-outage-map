@@ -1,0 +1,55 @@
+openapi: 3.0.3
+info:
+  title: Power Outage Map API
+  version: 1.0.0
+  description: Public and authenticated API for managing community power outages.
+paths:
+  /api/v1/outages:
+    get:
+      summary: Get active outages within a bounding box
+      description: Returns active outages inside the specified viewport. Exposes zero personal data.
+      parameters:
+        - in: query
+          name: min_lat
+          required: true
+          schema:
+            type: number
+            format: float
+        - in: query
+          name: max_lat
+          required: true
+          schema:
+            type: number
+            format: float
+        - in: query
+          name: min_lng
+          required: true
+          schema:
+            type: number
+            format: float
+        - in: query
+          name: max_lng
+          required: true
+          schema:
+            type: number
+            format: float
+      responses:
+        '200':
+          description: List of public active outages
+    post:
+      summary: Create a new outage report
+      description: Requires authentication and respects rate limiting & active quota.
+      responses:
+        '201':
+          description: Outage created successfully
+        '422':
+          description: Validation error or quota exceeded
+  /api/v1/outages/{id}/close:
+    post:
+      summary: Manually close an active outage
+      description: Requires authentication and ownership authorization via Policy.
+      responses:
+        '200':
+          description: Outage closed successfully
+        '403':
+          description: Unauthorized action

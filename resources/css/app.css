@@ -1,3 +1,23 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+:root {
+    --color-bg: #F9FAFB;
+    --color-surface: #FFFFFF;
+    --color-border: #E5E7EB;
+    --color-text: #111111;
+    --color-text-muted: #6B7280;
+    --color-accent: #E5484D;
+    --color-accent-hover: #DC2626;
+    --color-accent-soft: #FEE2E2;
+    --color-grid: rgba(0, 0, 0, 0.05);
+}
+
+.bg-grid-pattern {
+    background-color: var(--color-bg);
+    background-image:
+        linear-gradient(to right, var(--color-grid) 1px, transparent 1px),
+        linear-gradient(to bottom, var(--color-grid) 1px, transparent 1px);
+    background-size: 24px 24px;
+}

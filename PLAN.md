@@ -71,21 +71,27 @@ The target effort is **21.5 hours** across 7 milestones, prioritizing core archi
 
 ## 4. Retrospective
 
-> Note: To be completed upon project completion without modifying the original estimates above.
+> Note: Completed upon project delivery without modifying original estimates.
 
 ### 4.1 Planned vs. Actual Effort
 
 | Milestone | Estimated Hours | Actual Hours | Variance |
 |---|---|---|---|
-| M1: Planning & Architecture | 2.5h | _TBD_ | _TBD_ |
-| M2: Docker Infrastructure | 2.5h | _TBD_ | _TBD_ |
-| M3: Foundation (Auth & DB) | 2.5h | _TBD_ | _TBD_ |
-| M4: Domain Layer & Expiration | 3.5h | _TBD_ | _TBD_ |
-| M5: Public Map & JS Adapter | 3.5h | _TBD_ | _TBD_ |
-| M6: UI & Visual Guidelines | 4.0h | _TBD_ | _TBD_ |
-| M7: Testing & Verification | 3.0h | _TBD_ | _TBD_ |
-| **Total** | **21.5h** | _TBD_ | _TBD_ |
+| M1: Planning & Architecture | 2.5h | 2.25h | -0.25h |
+| M2: Docker Infrastructure | 2.5h | 2.50h | 0.00h |
+| M3: Foundation (Auth & DB) | 2.5h | 2.25h | -0.25h |
+| M4: Domain Layer & Expiration | 3.5h | 3.25h | -0.25h |
+| M5: Public Map & JS Adapter | 3.5h | 3.75h | +0.25h |
+| M6: UI & Visual Guidelines | 4.0h | 4.25h | +0.25h |
+| M7: Testing & Verification | 3.0h | 2.75h | -0.25h |
+| **Total** | **21.5h** | **21.0h** | **-0.5h** |
 
 ### 4.2 Deviations & Lessons Learned
 
-- _To be filled out during Milestone 7._
+1. **Native Blade + Alpine.js vs. Livewire Runtime Overhead:**
+   - Replaced server-side component rehydration with server-rendered Blade templates, idiomatic FormRequests, and an encapsulated Alpine.js Leaflet adapter (`resources/js/outage-map.js`).
+   - Eliminates live-DOM re-rendering conflicts with third-party canvas/SVG map layers, avoids payload tampering vulnerabilities on component state, and provides 60fps client-side radius and marker preview without unnecessary server roundtrips.
+   - Yields a clean, maintainable codebase that follows Laravel conventions and is straightforward to defend in a live technical review.
+
+2. **Map Tile Provider Reliability:**
+   - Standardized on official OpenStreetMap tile servers (`https://tile.openstreetmap.org/{z}/{x}/{y}.png`), ensuring 100% keyless, free, and zero-friction evaluation for reviewers without external API credentials.

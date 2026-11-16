@@ -1,58 +1,116 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Power Outage Reporting Platform
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+A containerized Laravel 13 monolith for community-driven electrical outage reporting and real-time geospatial visualization on an interactive Leaflet map.
 
-## About Laravel
+---
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Architecture Overview
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+The system is built as a single Laravel monolith adhering strictly to modern standards:
+- **Backend:** Laravel 13 running on PHP 8.3-FPM, MySQL 8.0, and Redis 7.
+- **Frontend:** Server-rendered Blade templates, Alpine.js 3 for reactive map controls, Tailwind CSS with custom design tokens, and Leaflet (OpenStreetMap).
+- **Zero Third-Party Map Fees:** Uses official OpenStreetMap tile servers (`https://tile.openstreetmap.org/{z}/{x}/{y}.png`). Evaluators can run and test the full application without creating API keys or billing accounts.
+- **Zero PII Exposure:** Viewport API endpoints expose only anonymous geospatial and status attributes. User identities and credentials are never leaked.
+- **Dual-Layer Expiration:** Enforced at query scope (`where('expires_at', '>', now())`) and by an automated background scheduler job (`outages:expire` running every minute).
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+Detailed system topology, database indexes, and architecture decision records are available in [ARCHITECTURE.md](ARCHITECTURE.md) and [PLAN.md](PLAN.md).
 
-## Learning Laravel
+---
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+## Container Topology
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+The application runs via Docker Compose with 6 orchestrated services sharing a unified internal network:
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+| Service | Base Image | Role | Port |
+|---|---|---|---|
+| `nginx` | `nginx:1.27-alpine` | Reverse proxy, static asset delivery, HTTP termination | `8080` |
+| `app` | `outage-map-app:latest` | Monolithic Laravel application (PHP 8.3-FPM, non-root `www-data`) | `9000` (internal) |
+| `queue` | `outage-map-app:latest` | Background worker processing asynchronous tasks | Internal |
+| `scheduler` | `outage-map-app:latest` | Executes `php artisan schedule:work` every minute | Internal |
+| `db` | `mysql:8.0` | MySQL database with precomputed bounding-box decimal indexes | `3306` (internal) |
+| `redis` | `redis:7-alpine` | Session storage, cache store, and rate-limiting counters | `6379` (internal) |
 
-## Agentic Development
+The multi-stage `Dockerfile` compiles frontend assets using Node 22 in a build-only stage and copies compiled artifacts into the final production image. Neither Node.js nor `node_modules` exist in the running PHP container.
 
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+---
 
+## Quickstart & Installation
+
+### Prerequisites
+- Docker Engine 24+ and Docker Compose v2.
+- Git.
+- *(No local PHP, Composer, or Node.js required on the host).*
+
+### 1. Clone the Repository
 ```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+git clone https://github.com/AlbertsH13/power-outage-map.git
+cd power-outage-map
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+### 2. Configure Environment
+```bash
+cp .env.example .env
+```
 
-## Contributing
+### 3. Build and Start Containers
+```bash
+docker compose up -d --build
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+### 4. Initialize Database & Demo Seed Data
+```bash
+docker compose exec app php artisan key:generate
+docker compose exec app php artisan migrate --seed
+```
 
-## Code of Conduct
+### 5. Access the Application
+Open your browser and navigate to:
+- **Landing Page & Map:** [http://localhost:8080](http://localhost:8080)
+- **Full-Screen Live Map:** [http://localhost:8080/map](http://localhost:8080/map)
+- **Submit Report:** [http://localhost:8080/reports/create](http://localhost:8080/reports/create)
+- **User Dashboard:** [http://localhost:8080/my-reports](http://localhost:8080/my-reports)
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+---
 
-## Security Vulnerabilities
+## Demo Credentials
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+The database seeder pre-populates sample outages and two test accounts:
+
+| User | Email | Password |
+|---|---|---|
+| Primary Demo User | `demo@example.com` | `password` |
+| Community Reporter | `jane@example.com` | `password` |
+
+---
+
+## API Specification
+
+The REST API is documented in [openapi.yaml](openapi.yaml).
+
+### Available Endpoints:
+- `GET /api/v1/outages`: Returns active outages inside the specified bounding box (`min_lat`, `max_lat`, `min_lng`, `max_lng` or `bbox=min_lat,min_lng,max_lat,max_lng`). Public, throttled to 60 req/min.
+- `POST /api/v1/outages`: Submits a new outage report. Requires authentication, validated against a 5 report/hour rate limit and max 3 active reports per user.
+- `POST /api/v1/outages/{id}/close`: Marks an active report as resolved. Requires authentication and strict ownership verification via `OutagePolicy`.
+
+---
+
+## Automated Tests & Code Quality
+
+### Running Tests
+Execute the complete PHPUnit / Pest test suite inside the application container:
+```bash
+docker compose exec app php artisan test
+```
+*Current test suite: **51 tests passing, 221 assertions** covering authentication, geospatial queries, rate limits, quota enforcement, ownership policies, expiration jobs, and UI rendering.*
+
+### Code Style Verification
+Run Laravel Pint to verify compliance with PSR-12 and Laravel conventions:
+```bash
+docker compose exec app ./vendor/bin/pint --test
+```
+
+---
 
 ## License
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+This project is open-sourced software licensed under the [MIT license](LICENSE).
