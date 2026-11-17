@@ -17,7 +17,6 @@ Route::get('/dashboard', function () {
 Route::middleware('auth')->group(function () {
     Route::get('/reports/create', [ReportController::class, 'create'])->name('reports.create');
     Route::post('/reports', [ReportController::class, 'store'])
-        ->middleware('throttle:create-outage')
         ->name('reports.store');
     Route::get('/my-reports', [ReportController::class, 'index'])->name('reports.index');
     Route::get('/reports/{outage}/edit', [ReportController::class, 'edit'])->name('reports.edit');
@@ -34,7 +33,7 @@ Route::prefix('api/v1')->group(function () {
         ->middleware('throttle:outages-api')
         ->name('api.outages.index');
 
-    Route::middleware(['auth', 'throttle:create-outage'])->group(function () {
+    Route::middleware('auth')->group(function () {
         Route::post('/outages', [OutageApiController::class, 'store'])
             ->name('api.outages.store');
         Route::match(['put', 'patch'], '/outages/{outage}', [OutageApiController::class, 'update'])

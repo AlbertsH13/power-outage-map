@@ -20,11 +20,24 @@
     @endif
 
     <section class="space-y-4">
-        <div class="flex items-center justify-between">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <h3 class="text-base font-bold text-gray-900 flex items-center gap-2">
                 <span class="w-2.5 h-2.5 rounded-full bg-red-600 animate-pulse"></span>
                 Active Outages ({{ $activeOutages->count() }})
             </h3>
+
+            <div class="flex items-center gap-3">
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold {{ $activeCount >= $maxActive ? 'bg-amber-100 text-amber-800' : 'bg-blue-50 text-blue-700 border border-blue-200' }}">
+                    Active Quota: {{ $activeCount }} / {{ $maxActive }}
+                </span>
+
+                <a href="{{ route('reports.create') }}" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-red-600 text-white text-xs font-semibold hover:bg-red-700 shadow-xs transition {{ $activeCount >= $maxActive ? 'opacity-50 pointer-events-none cursor-not-allowed' : '' }}">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                    Report Outage
+                </a>
+            </div>
         </div>
 
         @if ($activeOutages->isEmpty())

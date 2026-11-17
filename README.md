@@ -31,7 +31,7 @@ The application runs via Docker Compose with 6 orchestrated services sharing a u
 | `db` | `mysql:8.0` | MySQL database with precomputed bounding-box decimal indexes | `3306` (internal) |
 | `redis` | `redis:7-alpine` | Session storage, cache store, and rate-limiting counters | `6379` (internal) |
 
-The multi-stage `Dockerfile` compiles frontend assets using Node 22 in a build-only stage and copies compiled artifacts into the final production image. Neither Node.js nor `node_modules` exist in the running PHP container.
+The multi-stage `Dockerfile` compiles frontend assets using Node 22 in a build-only stage and copies compiled artifacts into the final production image. Neither Node.js nor `node_modules` exist in the running PHP container. To facilitate seamless technical evaluation without requiring reviewers to install PHP 8.3, Composer, or SQLite on their host machines, development testing packages (`phpunit`, `pint`, `collision`) are intentionally retained in the container image so that evaluators can execute `docker compose exec app php artisan test` and `docker compose exec app ./vendor/bin/pint --test` directly out of the box.
 
 ---
 
@@ -173,8 +173,8 @@ During architectural design and implementation, the following key domain assumpt
 ## Optional Features Implemented
 
 Rather than spreading effort across superficial extras, focus was placed on production hardening the core specification:
-- **Hybrid Livewire v3 Architecture:** Integrated Livewire v3 components (`ManageReports`, `CreateReportForm`) with `wire:ignore` isolation for the Leaflet canvas, combining stateful reactive pagination and modals with conflict-free 60fps client-side map rendering.
-- **Domain Actions Layer:** Encapsulated business logic into dedicated, reusable Action classes (`CreateOutageAction`, `UpdateOutageAction`, `CloseOutageAction`) shared by both Web Livewire controllers and REST API endpoints.
+- **Hybrid Livewire 4 Architecture:** Integrated Livewire 4 (`^4.4`) components (`ManageReports`, `CreateReportForm`) with `wire:ignore` isolation for the Leaflet canvas, combining stateful reactive pagination and modals with conflict-free 60fps client-side map rendering.
+- **Domain Actions Layer & Encapsulated Rate Limiting:** Encapsulated business logic into dedicated, reusable Action classes (`CreateOutageAction`, `UpdateOutageAction`, `CloseOutageAction`) shared by Web, Livewire, and REST API endpoints. Rate limiting (5 reports/hour) and active limits (max 3) are evaluated inside `CreateOutageAction`, ensuring full protection regardless of entry point (including Livewire's internal `POST /livewire/update`).
 - **Styled Technical Error Pages:** Customized Blade error views (`403`, `404`, `419`, `429`, `500`) styled to match system design tokens with technical monospace status codes, clear diagnostic descriptions, and recovery buttons.
 - **Dedicated Redis Rate Limiting:** Configured custom rate limiters (`throttle:create-outage` allowing 5 reports/hour, `throttle:register` allowing 5 registrations/minute, and `throttle:api` allowing 60 queries/minute) backed by Redis counters.
 - **Automated Background Expiration:** Scheduled command `outages:expire` running every minute via the Docker `scheduler` container, paired with query scopes that filter out expired records at query time.

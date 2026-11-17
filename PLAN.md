@@ -88,7 +88,7 @@ The target effort is **21.5 hours** across 7 milestones, prioritizing core archi
 
 ### 4.2 Deviations & Lessons Learned
 
-1. **Hybrid Frontend Architecture (Livewire v3 + Alpine.js + wire:ignore Map Adapter):**
+1. **Hybrid Frontend Architecture (Livewire 4 + Alpine.js + wire:ignore Map Adapter):**
    - **Compliance with Technical Specifications (Sections 3.1, 5.2 & 5.1.12):** To strictly satisfy the technical test requirements without introducing external SPA bloat (Vue/React), Livewire was incrementally integrated for reactive state management across user forms and management tables (`CreateReportForm`, `ManageReports`).
    - **DOM Preservation via `wire:ignore`:** Standard Livewire DOM-morphing would inadvertently re-render or destroy Leaflet canvas/SVG map instances upon reactive state changes (e.g., typing description notes or triggering validation errors). By isolating the Leaflet DOM container behind `<div wire:ignore>`, the map remains permanently mounted and stable.
    - **Alpine.js & Vanilla JS Integration:** Alpine.js and a modular JavaScript map adapter (`resources/js/outage-map.js`) deliver immediate 60fps client-side feedback for the radius slider, drag-and-drop marker relocation, and device geolocation, synchronizing coordinates with Livewire via native DOM input/change events.

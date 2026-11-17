@@ -311,11 +311,11 @@ erDiagram
 
 ---
 
-### ADR 06: Hybrid Frontend Architecture (Livewire Reactive Components + Blade + Alpine.js + wire:ignore Leaflet Adapter)
+### ADR 06: Hybrid Frontend Architecture (Livewire 4 Reactive Components + Blade + Alpine.js + wire:ignore Leaflet Adapter)
 * **Status:** Accepted
 * **Context:** Interactive Leaflet maps require continuous DOM stability. Automated component morphing engines can inadvertently destroy Leaflet SVG/canvas instances, reset viewport state, and detach event listeners during re-renders. Meanwhile, interactive reporting, fast in-place pagination, status resolution, and report editing require reactive, single-page-like UX without full page reloads.
 * **Decision:**
-  - Adopt a robust hybrid architecture: use **Livewire** components (`CreateReportForm`, `ManageReports`) for reactive form handling, validation errors, real-time feedback, and AJAX-driven pagination using the `WithPagination` trait.
+  - Adopt a robust hybrid architecture: use **Livewire 4** components (`CreateReportForm`, `ManageReports`) for reactive form handling, validation errors, real-time feedback, and AJAX-driven pagination using the `WithPagination` trait.
   - Isolate the Leaflet interactive map instances using Livewire's `wire:ignore` directive on the map container (`<div wire:ignore><div id="picker-map">...</div></div>`).
   - Use **Alpine.js** and modular JavaScript (`resources/js/outage-map.js`) for lightweight 60fps client-side map interactions (radius slider feedback, geolocation resolution, coordinate syncing).
   - Business logic, authorization, quota checks, and persistence are strictly delegated to server-side Domain Actions (`CreateOutageAction`, `UpdateOutageAction`, `CloseOutageAction`) and `OutagePolicy`.
@@ -366,7 +366,7 @@ flowchart LR
 - **Policy Enforcement on Every Mutation:** Before updating or closing a report, actions call `Gate::authorize('update', $outage)` and `Gate::authorize('close', $outage)`. Tampering with an ID to modify someone else's outage immediately returns an HTTP 403 Forbidden.
 
 ### 6.2 Application-Level Rate Limiting & Active Report Caps
-- **Rate Limiting:** In `AppServiceProvider`, we register the `create-outage` rate limiter keyed by user ID (or IP for guests) with a default of 5 reports/hour.
+- **Domain Action-Level Rate Limiting:** As highlighted in Section 4.6 of the specification, route middleware alone cannot intercept Livewire component actions executing through internal endpoints (`POST /livewire/update`). To guarantee that rate limits cannot be bypassed through client-side component tampering, the rate limit (5 reports/hour, configurable via `OUTAGE_RATE_LIMIT_PER_HOUR`) is enforced directly inside `CreateOutageAction::execute()` using `RateLimiter::tooManyAttempts("create-outage:{$user->id}", $max)`. If exceeded, a `ValidationException` with status 429 is thrown. Upon successful database creation, `RateLimiter::hit()` increments the counter with a 3600-second TTL. This establishes `CreateOutageAction` as the single source of truth across Web forms, Livewire actions, and REST API endpoints.
 - **Active Reports Limit:** Inside `CreateOutageAction`, the system checks:
   ```php
   $activeCount = Outage::where('user_id', $user->id)

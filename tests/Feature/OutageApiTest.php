@@ -365,4 +365,55 @@ class OutageApiTest extends TestCase
         $this->assertSame(OutageStatus::Active, $future->fresh()->status);
         $this->assertSame(OutageStatus::Closed, $closed->fresh()->status);
     }
+
+    public function test_until_closed_outage_enforces_strict_72_hour_expiration_cap(): void
+    {
+        Carbon::setTestNow('2026-11-16 12:00:00');
+
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->postJson('/api/v1/outages', [
+            'latitude' => 10.4900,
+            'longitude' => -66.8800,
+            'radius_km' => 2.0,
+            'duration_type' => 'until_closed',
+            'description' => 'Substation fault until repair crews finish.',
+        ]);
+
+        $response->assertStatus(201)
+            ->assertJsonPath('data.duration_type', 'until_closed');
+
+        $outage = Outage::where('user_id', $user->id)->firstOrFail();
+
+        $this->assertTrue(
+            $outage->expires_at->equalTo($outage->created_at->copy()->addHours(72))
+        );
+
+        Carbon::setTestNow();
+    }
+
+    public function test_until_closed_outage_expires_after_72_hours_using_travel(): void
+    {
+        Carbon::setTestNow('2026-11-16 12:00:00');
+
+        $user = User::factory()->create();
+
+        $outage = Outage::factory()->untilClosed()->create([
+            'user_id' => $user->id,
+            'status' => OutageStatus::Active,
+            'created_at' => now(),
+            'expires_at' => now()->addHours(72),
+        ]);
+
+        $this->assertSame(OutageStatus::Active, $outage->fresh()->status);
+
+        $this->travel(73)->hours();
+
+        $this->artisan('outages:expire')
+            ->assertSuccessful();
+
+        $this->assertSame(OutageStatus::Expired, $outage->fresh()->status);
+
+        Carbon::setTestNow();
+    }
 }

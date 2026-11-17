@@ -6,6 +6,7 @@ use App\Enums\DurationType;
 use App\Enums\OutageStatus;
 use App\Models\Outage;
 use App\Models\User;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Validation\ValidationException;
 
 class CreateOutageAction
@@ -15,6 +16,17 @@ class CreateOutageAction
      */
     public function execute(User $user, array $data): Outage
     {
+        $rateLimitKey = "create-outage:{$user->id}";
+        $maxPerHour = (int) config('outage.rate_limit_per_hour', 5);
+
+        if (RateLimiter::tooManyAttempts($rateLimitKey, $maxPerHour)) {
+            $seconds = RateLimiter::availableIn($rateLimitKey);
+            throw ValidationException::withMessages([
+                'outage' => "You have reached the limit of {$maxPerHour} reports per hour. Try again in "
+                    .ceil($seconds / 60).' minutes.',
+            ])->status(429);
+        }
+
         $maxActive = (int) config('outage.max_active_per_user', 3);
 
         $activeCount = Outage::where('user_id', $user->id)
@@ -42,7 +54,7 @@ class CreateOutageAction
             DurationType::UntilClosed => now()->addHours((int) config('outage.until_closed_hard_cap_hours', 72)),
         };
 
-        return Outage::create([
+        $outage = Outage::create([
             'user_id' => $user->id,
             'latitude' => $lat,
             'longitude' => $lng,
@@ -57,5 +69,9 @@ class CreateOutageAction
             'expires_at' => $expiresAt,
             'description' => $data['description'] ?? null,
         ]);
+
+        RateLimiter::hit($rateLimitKey, 3600);
+
+        return $outage;
     }
 }

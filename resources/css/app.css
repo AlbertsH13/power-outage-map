@@ -3,15 +3,16 @@
 @tailwind utilities;
 
 :root {
-    --color-bg: #F9FAFB;
-    --color-surface: #FFFFFF;
-    --color-border: #E5E7EB;
+    --color-bg: #FFFFFF;
+    --color-grid: #F1F1F1;
     --color-text: #111111;
-    --color-text-muted: #6B7280;
+    --color-text-muted: #555555;
     --color-accent: #E5484D;
-    --color-accent-hover: #DC2626;
-    --color-accent-soft: #FEE2E2;
-    --color-grid: rgba(0, 0, 0, 0.05);
+    --color-accent-hover: #D93D42;
+    --color-accent-soft: #FDECEC;
+    --color-border: #E4E4E4;
+    --color-surface: #F5F5F5;
+    --radius: 8px;
 }
 
 .bg-grid-pattern {

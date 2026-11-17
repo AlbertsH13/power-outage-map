@@ -127,4 +127,41 @@ class CreateReportFormTest extends TestCase
 
         $this->assertDatabaseCount('outages', 3);
     }
+
+    public function test_livewire_save_enforces_hourly_rate_limit(): void
+    {
+        config([
+            'outage.max_active_per_user' => 100,
+            'outage.rate_limit_per_hour' => 2,
+        ]);
+
+        $user = User::factory()->create();
+
+        foreach (range(1, 2) as $i) {
+            Livewire::actingAs($user)
+                ->test(CreateReportForm::class)
+                ->set('latitude', 10.5)
+                ->set('longitude', -66.9)
+                ->set('radius_km', 1)
+                ->set('duration_type', 'fixed')
+                ->set('duration_hours', 2)
+                ->call('save')
+                ->assertHasNoErrors();
+        }
+
+        Livewire::actingAs($user)
+            ->test(CreateReportForm::class)
+            ->set('latitude', 10.5)
+            ->set('longitude', -66.9)
+            ->set('radius_km', 1)
+            ->set('duration_type', 'fixed')
+            ->set('duration_hours', 2)
+            ->call('save')
+            ->assertHasErrors(['outage']);
+
+        $this->assertSame(
+            2,
+            Outage::where('user_id', $user->id)->count()
+        );
+    }
 }

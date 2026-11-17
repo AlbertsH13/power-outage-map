@@ -57,21 +57,22 @@
         <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-8 sm:pt-14 sm:pb-12">
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
                 <div class="lg:col-span-5 space-y-6 text-center lg:text-left">
-                    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-red-50 text-red-700 border border-red-200">
-                        <span class="w-2 h-2 rounded-full bg-red-600 animate-pulse"></span>
+                    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-[var(--color-accent-soft)] text-[var(--color-accent)] border border-red-200">
+                        <span class="w-2 h-2 rounded-full bg-[var(--color-accent)] animate-pulse"></span>
                         Real-Time Monitoring
                     </div>
 
-                    <h1 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-gray-900 leading-tight">
-                        Community-driven power outage monitoring.
+                    <h1 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight leading-tight">
+                        <span class="block text-[var(--color-text)]">Community-driven</span>
+                        <span class="block text-[var(--color-text-muted)] font-bold">power outage monitoring.</span>
                     </h1>
 
-                    <p class="text-base sm:text-lg text-gray-600 leading-relaxed">
+                    <p class="text-base sm:text-lg text-[var(--color-text-muted)] leading-relaxed">
                         Visualize areas affected by electrical grid failures in real time on an interactive map. Direct community reporting, open data, and zero privacy tracking.
                     </p>
 
                     <div class="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3.5 pt-2">
-                        <a href="{{ route('map') }}" class="w-full sm:w-auto px-6 py-3 rounded-lg bg-red-600 text-white font-semibold text-center hover:bg-red-700 shadow-sm transition flex items-center justify-center gap-2">
+                        <a href="{{ route('map') }}" class="w-full sm:w-auto px-6 py-3 rounded-lg bg-[var(--color-accent)] text-white font-semibold text-center hover:opacity-90 shadow-xs transition flex items-center justify-center gap-2">
                             <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
                             </svg>
@@ -79,14 +80,14 @@
                         </a>
 
                         @auth
-                            <a href="{{ route('reports.create') }}" class="w-full sm:w-auto px-6 py-3 rounded-lg bg-gray-900 text-white font-semibold text-center hover:bg-black transition shadow-sm">
+                            <a href="{{ route('reports.create') }}" class="w-full sm:w-auto px-6 py-3 rounded-lg bg-gray-900 text-white font-semibold text-center hover:bg-black transition shadow-xs">
                                 Report an Outage
                             </a>
-                            <a href="{{ route('reports.index') }}" class="w-full sm:w-auto px-6 py-3 rounded-lg bg-white border border-gray-300 text-gray-800 font-semibold text-center hover:bg-gray-50 transition shadow-sm">
+                            <a href="{{ route('reports.index') }}" class="w-full sm:w-auto px-6 py-3 rounded-lg bg-white border border-[var(--color-border)] text-[var(--color-text)] font-semibold text-center hover:bg-gray-50 transition shadow-xs">
                                 My Reports
                             </a>
                         @else
-                            <a href="{{ route('login') }}" class="w-full sm:w-auto px-6 py-3 rounded-lg bg-white border border-gray-300 text-gray-800 font-semibold text-center hover:bg-gray-50 transition shadow-sm">
+                            <a href="{{ route('login') }}" class="w-full sm:w-auto px-6 py-3 rounded-lg bg-white border border-[var(--color-border)] text-[var(--color-text)] font-semibold text-center hover:bg-gray-50 transition shadow-xs">
                                 Log in to Report
                             </a>
                         @endauth
@@ -94,57 +95,40 @@
                 </div>
 
                 <div class="lg:col-span-7">
-                    <div class="bg-white p-2 rounded-2xl shadow-sm border border-gray-200">
+                    <x-window-panel title="live-map.canvas">
                         <x-outage-map id="preview-map" lat="10.492" lng="-66.880" zoom="12" class="h-[420px] sm:h-[480px] w-full" />
-                    </div>
-                    <p class="text-xs text-center text-gray-500 mt-2">
+                    </x-window-panel>
+                    <p class="text-xs text-center text-[var(--color-text-muted)] font-mono mt-2">
                         Pan or zoom the map to automatically load outages in the visible area.
                     </p>
                 </div>
             </div>
         </section>
 
-        <section class="border-t border-gray-200 bg-white py-12 sm:py-16">
+        <section class="border-t border-[var(--color-border)] bg-white py-12 sm:py-16">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div class="text-center max-w-3xl mx-auto mb-10">
-                    <h2 class="text-2xl sm:text-3xl font-bold text-gray-900">
-                        How does the platform work?
+                <div class="text-center max-w-3xl mx-auto mb-10 space-y-2">
+                    <span class="font-mono text-xs uppercase tracking-widest text-[var(--color-accent)] font-semibold">Architecture & Workflow</span>
+                    <h2 class="text-2xl sm:text-3xl font-bold text-[var(--color-text)]">
+                        How It Works
                     </h2>
-                    <p class="text-gray-600 mt-2">
-                        Three architectural pillars for direct, fast, and reliable monitoring.
+                    <p class="text-[var(--color-text-muted)] text-sm">
+                        Sub-second geospatial monitoring with zero tracking and community-verified resolution.
                     </p>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                    <div class="p-6 rounded-xl border border-gray-200 bg-gray-50/50 hover:bg-gray-50 transition">
-                        <div class="w-10 h-10 rounded-lg bg-red-100 text-red-600 font-bold flex items-center justify-center text-lg mb-4">
-                            1
-                        </div>
-                        <h3 class="text-lg font-bold text-gray-900 mb-2">Viewport Queries</h3>
-                        <p class="text-sm text-gray-600 leading-relaxed">
-                            The Leaflet map queries only the coordinates visible on screen, indexed with bounding boxes in MySQL 8 for sub-second response times.
-                        </p>
-                    </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+                    <x-step
+                        number="01"
+                        title="Pinpoint & Report"
+                        description="Select your outage coordinates with precision on the Leaflet canvas, set an affected radius from 0.5 to 25 km, and specify expected duration with instant client-side preview."
+                    />
 
-                    <div class="p-6 rounded-xl border border-gray-200 bg-gray-50/50 hover:bg-gray-50 transition">
-                        <div class="w-10 h-10 rounded-lg bg-blue-100 text-blue-600 font-bold flex items-center justify-center text-lg mb-4">
-                            2
-                        </div>
-                        <h3 class="text-lg font-bold text-gray-900 mb-2">Real-World Impact Radius</h3>
-                        <p class="text-sm text-gray-600 leading-relaxed">
-                            Select coordinates and affected radius (0.5 to 25 km). Reports remain active for fixed hours or until manually resolved by the author.
-                        </p>
-                    </div>
-
-                    <div class="p-6 rounded-xl border border-gray-200 bg-gray-50/50 hover:bg-gray-50 transition">
-                        <div class="w-10 h-10 rounded-lg bg-emerald-100 text-emerald-600 font-bold flex items-center justify-center text-lg mb-4">
-                            3
-                        </div>
-                        <h3 class="text-lg font-bold text-gray-900 mb-2">Zero PII Leakage & Auto-Expiration</h3>
-                        <p class="text-sm text-gray-600 leading-relaxed">
-                            Personal identifiable information is never exposed in the public feed. A minute scheduler cron and active query scope guarantee expired reports disappear automatically.
-                        </p>
-                    </div>
+                    <x-step
+                        number="02"
+                        title="Live Viewport & Auto-Resolve"
+                        description="Active reports render as translucent overlays for citizens in the area. Once power returns, reporters mark the incident resolved or the background scheduler auto-expires it."
+                    />
                 </div>
             </div>
         </section>
