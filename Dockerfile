@@ -27,7 +27,7 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 WORKDIR /var/www/html
 
 COPY composer.json composer.lock ./
-RUN composer install --no-dev --no-scripts --no-autoloader --prefer-dist
+RUN composer install --no-scripts --no-autoloader --prefer-dist
 
 COPY . .
 COPY --from=frontend-builder /app/public/build ./public/build
@@ -35,10 +35,11 @@ COPY --from=frontend-builder /app/public/build ./public/build
 RUN cp -r /var/www/html/public/build /var/www/html/build-dist \
     && ([ -f /var/www/html/.env ] || cp /var/www/html/.env.example /var/www/html/.env) \
     && composer dump-autoload --optimize \
+    && php artisan key:generate --force \
     && chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/public /var/www/html/.env
 
-RUN printf '#!/bin/sh\nset -e\nif [ -d "/var/www/html/build-dist" ]; then\n    mkdir -p /var/www/html/public/build\n    cp -rf /var/www/html/build-dist/* /var/www/html/public/build/\nfi\nexec "$@"\n' > /usr/local/bin/entrypoint.sh \
-    && chmod +x /usr/local/bin/entrypoint.sh
+COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
 
 USER www-data
 

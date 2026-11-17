@@ -1,5 +1,15 @@
 <?php
 
+if (empty($_ENV['APP_KEY'])) {
+    unset($_ENV['APP_KEY']);
+}
+if (empty($_SERVER['APP_KEY'])) {
+    unset($_SERVER['APP_KEY']);
+}
+if (getenv('APP_KEY') === '') {
+    putenv('APP_KEY');
+}
+
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
