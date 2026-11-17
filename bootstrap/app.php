@@ -1,20 +1,5 @@
 <?php
 
-if (empty($_ENV['APP_KEY']) || empty(getenv('APP_KEY'))) {
-    $keyFile = dirname(__DIR__).'/storage/framework/app.key';
-    if (! file_exists($keyFile)) {
-        @mkdir(dirname($keyFile), 0777, true);
-        $generatedKey = 'base64:'.base64_encode(random_bytes(32));
-        @file_put_contents($keyFile, $generatedKey);
-    }
-    $persistedKey = trim((string) @file_get_contents($keyFile));
-    if (! empty($persistedKey)) {
-        $_ENV['APP_KEY'] = $persistedKey;
-        $_SERVER['APP_KEY'] = $persistedKey;
-        putenv('APP_KEY='.$persistedKey);
-    }
-}
-
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;

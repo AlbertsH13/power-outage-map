@@ -48,15 +48,11 @@ git clone https://github.com/AlbertsH13/power-outage-map.git
 cd power-outage-map
 ```
 
-### 2. Configure Environment & Encryption Key
+### 2. Configure Environment
 ```bash
 cp .env.example .env
 ```
-Generate a secure application key and place it into your `.env` (guaranteeing `app`, `queue`, and `scheduler` all share the exact same key):
-```bash
-docker compose run --rm app php artisan key:generate --show
-```
-*(Copy the printed `base64:...` string to `APP_KEY` in your `.env` file).*
+> If `APP_KEY` is left blank, the Docker entrypoint automatically generates a persistent encryption key shared across `app`, `queue`, and `scheduler`. To pre-generate one manually: `docker compose run --rm app php artisan key:generate --show` and paste it into `.env`.
 
 ### 3. Build and Start Containers
 ```bash
