@@ -30,5 +30,9 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perHour(config('outage.rate_limit_per_hour', 5))
                 ->by($request->user()?->id ?: $request->ip());
         });
+
+        RateLimiter::for('register', function (Request $request) {
+            return Limit::perMinute(5)->by($request->ip());
+        });
     }
 }

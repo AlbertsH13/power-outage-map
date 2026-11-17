@@ -10,57 +10,266 @@ paths:
       description: Returns active outages inside the specified viewport. Exposes zero personal data.
       parameters:
         - in: query
+          name: bbox
+          required: false
+          description: Comma-separated bounding box (min_lat,min_lng,max_lat,max_lng)
+          schema:
+            type: string
+            example: "10.45,-66.95,10.55,-66.80"
+        - in: query
           name: min_lat
-          required: true
+          required: false
           schema:
             type: number
             format: float
+            example: 10.45000000
         - in: query
           name: max_lat
-          required: true
+          required: false
           schema:
             type: number
             format: float
+            example: 10.55000000
         - in: query
           name: min_lng
-          required: true
+          required: false
           schema:
             type: number
             format: float
+            example: -66.95000000
         - in: query
           name: max_lng
-          required: true
+          required: false
           schema:
             type: number
             format: float
+            example: -66.80000000
       responses:
         '200':
           description: List of public active outages
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PublicOutage'
+        '422':
+          description: Validation error in bounding box coordinates
+        '429':
+          description: Rate limit exceeded (60 requests per minute)
     post:
       summary: Create a new outage report
       description: Requires authentication and respects rate limiting & active quota.
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - latitude
+                - longitude
+                - radius_km
+                - duration_type
+              properties:
+                latitude:
+                  type: number
+                  format: float
+                  example: 10.49200000
+                longitude:
+                  type: number
+                  format: float
+                  example: -66.88000000
+                radius_km:
+                  type: number
+                  format: float
+                  example: 2.50
+                duration_type:
+                  type: string
+                  enum: [fixed, until_closed]
+                  example: fixed
+                duration_hours:
+                  type: integer
+                  minimum: 1
+                  maximum: 72
+                  example: 6
+                description:
+                  type: string
+                  maxLength: 500
+                  example: Substation failure affecting main sector.
       responses:
         '201':
           description: Outage created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/PublicOutage'
+        '401':
+          description: Unauthenticated
         '422':
-          description: Validation error or quota exceeded
+          description: Validation error or max active quota (3) exceeded
+        '429':
+          description: Rate limit exceeded (5 reports per hour)
   /api/v1/outages/{id}:
     put:
       summary: Update an active outage report
-      description: Requires authentication and ownership authorization via Policy.
+      description: Requires authentication and ownership authorization via OutagePolicy.
+      security:
+        - sessionAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - radius_km
+                - duration_type
+              properties:
+                radius_km:
+                  type: number
+                  format: float
+                  example: 3.50
+                duration_type:
+                  type: string
+                  enum: [fixed, until_closed]
+                  example: fixed
+                duration_hours:
+                  type: integer
+                  minimum: 1
+                  maximum: 72
+                  example: 8
+                description:
+                  type: string
+                  maxLength: 500
+                  example: Updated note regarding repair crews.
       responses:
         '200':
           description: Outage updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/PublicOutage'
+        '401':
+          description: Unauthenticated
         '403':
-          description: Unauthorized action
+          description: Unauthorized action (not the report owner)
         '422':
-          description: Validation error or inactive report
+          description: Validation error or outage is no longer active
   /api/v1/outages/{id}/close:
     post:
       summary: Manually close an active outage
-      description: Requires authentication and ownership authorization via Policy.
+      description: Requires authentication and ownership authorization via OutagePolicy.
+      security:
+        - sessionAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
       responses:
         '200':
           description: Outage closed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/PublicOutage'
+        '401':
+          description: Unauthenticated
         '403':
-          description: Unauthorized action
+          description: Unauthorized action (not the report owner)
+        '422':
+          description: Outage is already closed or expired
+components:
+  securitySchemes:
+    sessionAuth:
+      type: apiKey
+      in: cookie
+      name: laravel_session
+  schemas:
+    PublicOutage:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        latitude:
+          type: number
+          format: float
+          example: 10.49200000
+        longitude:
+          type: number
+          format: float
+          example: -66.88000000
+        radius_km:
+          type: number
+          format: float
+          example: 2.50
+        bounding_box:
+          type: object
+          properties:
+            min_lat:
+              type: number
+              format: float
+            max_lat:
+              type: number
+              format: float
+            min_lng:
+              type: number
+              format: float
+            max_lng:
+              type: number
+              format: float
+        status:
+          type: string
+          enum: [active, closed, expired]
+          example: active
+        duration_type:
+          type: string
+          enum: [fixed, until_closed]
+          example: fixed
+        duration_hours:
+          type: integer
+          nullable: true
+          example: 6
+        expires_at:
+          type: string
+          format: date-time
+          example: "2026-11-16T22:00:00Z"
+        closed_at:
+          type: string
+          format: date-time
+          nullable: true
+          example: null
+        created_at:
+          type: string
+          format: date-time
+          example: "2026-11-16T16:00:00Z"
+        description:
+          type: string
+          nullable: true
+          example: Feeder failure on main grid.
+        is_owner:
+          type: boolean
+          example: false

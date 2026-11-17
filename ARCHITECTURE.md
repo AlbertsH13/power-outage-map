@@ -209,6 +209,15 @@ erDiagram
 | `UpdateOutageAction` | Update active outage | `OutagePolicy@update` | Report must be currently active; 72h safety cap from creation. | Recalculates bounding box on radius change; updates record. |
 | `CloseOutageAction` | Manually resolve outage | `OutagePolicy@close` | Report must be currently active (`expires_at > now()`). | Sets `status = closed` and `closed_at = now()`. |
 
+### 4.3 Livewire Component Actions (State-Mutating)
+
+| Livewire Component | Public Method | Invocation Trigger | Authorization | Domain Action Invoked | Reactive UI Effect |
+|---|---|---|---|---|---|
+| `App\Livewire\CreateReportForm` | `save()` | Form submit (`wire:submit="save"`) | `auth` | `CreateOutageAction` | Validates inputs, persists outage record, flashes session status, and redirects to `reports.index`. |
+| `App\Livewire\ManageReports` | `openEditModal($outageId)` | Click "Edit" | `OutagePolicy@update` | None (reads model) | Loads outage attributes into component state and sets `showEditModal = true`. |
+| `App\Livewire\ManageReports` | `updateReport()` | Modal submit (`wire:submit="updateReport"`) | `OutagePolicy@update` | `UpdateOutageAction` | Validates input, persists changes, closes modal, flashes status, and updates card. |
+| `App\Livewire\ManageReports` | `closeReport($outageId)` / `resolve($outageId)` | Click "Mark as Resolved" (`wire:click`) | `OutagePolicy@close` | `CloseOutageAction` | Resolves outage, resets pagination (`resetPage`), flashes status, and moves card to history. |
+
 ---
 
 ## 5. Architecture Decision Records (ADRs)
@@ -315,6 +324,10 @@ erDiagram
   - Livewire provides seamless reactivity for user-facing tables, pagination, and modals without writing custom AJAX/fetch boilerplate.
   - Zero heavy SPA frameworks (no Vue or React dependencies required), honoring the Laravel Monolith constraint while achieving modern reactive UX.
 * **Trade-offs:** Livewire properties and Leaflet coordinates are synchronized using DOM event listeners (`input`/`change`) within the component view.
+* **Timezone Strategy (UTC Storage & Local Timezone Display):**
+  - **Storage:** All datetime timestamps (`created_at`, `expires_at`, `closed_at`, `updated_at`) are saved in UTC in MySQL, preventing timezone desynchronization and daylight-saving bugs in database calculations.
+  - **Transmission:** Dates rendered in HTML or emitted through JSON endpoints are transmitted as ISO-8601 UTC strings (`$outage->created_at->toIso8601String()`), formatted in views with semantic `<time datetime="..." data-utc="...">` elements alongside human-relative indicators (`diffForHumans()`).
+  - **Client-Side Rendering:** The browser converts UTC timestamps into the user's local operating system timezone using native client-side APIs (`Date.toLocaleTimeString()` in Leaflet map popups and `Intl.DateTimeFormat` in table views), guaranteeing zero user-preference configuration overhead and eliminating server session timezone tracking.
 
 ---
 

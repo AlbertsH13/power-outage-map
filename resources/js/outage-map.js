@@ -127,6 +127,8 @@ export class OutageMapAdapter {
                 dashArray: isOwner ? '6, 4' : null,
             });
 
+            const createdDate = outage.created_at ? new Date(outage.created_at) : null;
+            const createdFormatted = createdDate ? createdDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : null;
             const expirationDate = outage.expires_at ? new Date(outage.expires_at) : null;
             const expFormatted = expirationDate ? expirationDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—';
             const durationLabel = outage.duration_type === 'fixed' 
@@ -144,6 +146,7 @@ export class OutageMapAdapter {
                     <div class="space-y-1 text-gray-600">
                         <div><strong>Radius:</strong> ${outage.radius_km} km</div>
                         <div><strong>Duration:</strong> ${durationLabel}</div>
+                        ${createdFormatted ? `<div><strong>Reported:</strong> ${createdFormatted}</div>` : ''}
                         <div><strong>Est. Expiration:</strong> ${expFormatted}</div>
                     </div>
                     ${outage.description ? `

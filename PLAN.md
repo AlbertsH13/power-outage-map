@@ -96,3 +96,6 @@ The target effort is **21.5 hours** across 7 milestones, prioritizing core archi
 
 2. **Map Tile Provider Reliability:**
    - Standardized on official OpenStreetMap tile servers (`https://tile.openstreetmap.org/{z}/{x}/{y}.png`), ensuring 100% keyless, free, and zero-friction evaluation for reviewers without external API credentials.
+
+3. **Domain Action & Command Naming Streamlining:**
+   - The preliminary class names drafted in Milestone 4 (`CreateOutageReportAction`, `UpdateOutageReportAction`, `CloseOutageReportAction`, `ExpireOutageReportsAction`) were streamlined during development to `CreateOutageAction`, `UpdateOutageAction`, `CloseOutageAction`, and `ExpireOutagesCommand`. This convention eliminates redundant word repetition while cleanly reflecting single-responsibility domain boundaries.

@@ -53,9 +53,9 @@
                                 <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-red-100 text-red-700">
                                     Active Outage
                                 </span>
-                                <span class="text-xs text-gray-400">
+                                <time datetime="{{ $outage->created_at->toIso8601String() }}" data-utc="{{ $outage->created_at->toIso8601String() }}" title="{{ $outage->created_at->toIso8601String() }}" class="text-xs text-gray-400">
                                     {{ $outage->created_at->diffForHumans() }}
-                                </span>
+                                </time>
                             </div>
 
                             <div class="space-y-1.5 text-xs text-gray-600">
@@ -73,7 +73,9 @@
                                 </div>
                                 <div class="flex items-center justify-between">
                                     <span class="font-medium text-gray-500">Expires:</span>
-                                    <span class="font-semibold text-amber-700">{{ $outage->expires_at->diffForHumans() }}</span>
+                                    <time datetime="{{ $outage->expires_at->toIso8601String() }}" data-utc="{{ $outage->expires_at->toIso8601String() }}" title="{{ $outage->expires_at->toIso8601String() }}" class="font-semibold text-amber-700">
+                                        {{ $outage->expires_at->diffForHumans() }}
+                                    </time>
                                 </div>
                             </div>
 
@@ -164,11 +166,11 @@
                                             </span>
                                         @endif
                                     </td>
-                                    <td class="py-3 px-4 text-gray-500">
-                                        {{ $outage->created_at->format('M j, Y H:i') }}
+                                    <td class="py-3 px-4 text-gray-500 font-mono">
+                                        <time datetime="{{ $outage->created_at->toIso8601String() }}" data-utc="{{ $outage->created_at->toIso8601String() }}" title="{{ $outage->created_at->toIso8601String() }}">{{ $outage->created_at->format('M j, Y H:i') }}</time>
                                     </td>
-                                    <td class="py-3 px-4 text-gray-500">
-                                        {{ $outage->closed_at ? $outage->closed_at->format('M j, Y H:i') : $outage->expires_at->format('M j, Y H:i') }}
+                                    <td class="py-3 px-4 text-gray-500 font-mono">
+                                        <time datetime="{{ ($outage->closed_at ?? $outage->expires_at)->toIso8601String() }}" data-utc="{{ ($outage->closed_at ?? $outage->expires_at)->toIso8601String() }}" title="{{ ($outage->closed_at ?? $outage->expires_at)->toIso8601String() }}">{{ $outage->closed_at ? $outage->closed_at->format('M j, Y H:i') : $outage->expires_at->format('M j, Y H:i') }}</time>
                                     </td>
                                     <td class="py-3 px-4 text-gray-600 max-w-xs truncate" title="{{ $outage->description }}">
                                         {{ $outage->description ?: '—' }}
@@ -265,4 +267,18 @@
             </div>
         </div>
     @endif
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('time[data-utc]').forEach(el => {
+                const raw = el.getAttribute('data-utc');
+                if (raw && el.textContent.includes(':') && !el.textContent.includes('ago') && !el.textContent.includes('from now')) {
+                    const date = new Date(raw);
+                    if (!isNaN(date)) {
+                        el.textContent = date.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' }) + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+                    }
+                }
+            });
+        });
+    </script>
 </div>
