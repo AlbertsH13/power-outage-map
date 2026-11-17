@@ -117,17 +117,23 @@
                     </p>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
                     <x-step
                         number="01"
                         title="Pinpoint & Report"
-                        description="Select your outage coordinates with precision on the Leaflet canvas, set an affected radius from 0.5 to 25 km, and specify expected duration with instant client-side preview."
+                        description="Select your outage coordinates with precision on the Leaflet canvas, set an affected radius from 0.5 to 25 km, and preview the impact zone in real time."
                     />
 
                     <x-step
                         number="02"
-                        title="Live Viewport & Auto-Resolve"
-                        description="Active reports render as translucent overlays for citizens in the area. Once power returns, reporters mark the incident resolved or the background scheduler auto-expires it."
+                        title="Live Viewport Streaming"
+                        description="Active reports render as translucent overlays for citizens in the area. Outages load dynamically within the visible bounding box with zero personal data leakage."
+                    />
+
+                    <x-step
+                        number="03"
+                        title="Mark as Resolved"
+                        description="Close the report once power is restored to update your community in real time, or let the automated background scheduler expire it safely."
                     />
                 </div>
             </div>

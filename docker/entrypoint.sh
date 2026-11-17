@@ -12,17 +12,16 @@ if [ ! -f "/var/www/html/.env" ]; then
     cp /var/www/html/.env.example /var/www/html/.env
 fi
 
-# 3. Unset APP_KEY if empty (prevents Docker Compose from injecting an empty string over .env)
-if [ -z "$APP_KEY" ]; then
-    unset APP_KEY
+# 3. Synchronize APP_KEY from environment (injected via env_file from host .env)
+if [ -n "$APP_KEY" ]; then
+    if grep -q "^APP_KEY=" /var/www/html/.env 2>/dev/null; then
+        sed -i "s|^APP_KEY=.*|APP_KEY=${APP_KEY}|" /var/www/html/.env
+    else
+        echo "APP_KEY=${APP_KEY}" >> /var/www/html/.env
+    fi
 fi
 
-# 4. Ensure a valid application encryption key exists in /var/www/html/.env
-if ! grep -q "^APP_KEY=base64:" /var/www/html/.env 2>/dev/null; then
-    php artisan key:generate --force --no-interaction
-fi
-
-# 5. Clear configuration cache to guarantee no stale or empty APP_KEY is cached
+# 4. Clear configuration cache to guarantee fresh environment variables
 php artisan config:clear --no-interaction || true
 
 exec "$@"

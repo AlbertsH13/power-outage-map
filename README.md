@@ -48,10 +48,15 @@ git clone https://github.com/AlbertsH13/power-outage-map.git
 cd power-outage-map
 ```
 
-### 2. Configure Environment
+### 2. Configure Environment & Encryption Key
 ```bash
 cp .env.example .env
 ```
+Generate a secure application key and place it into your `.env` (guaranteeing `app`, `queue`, and `scheduler` all share the exact same key):
+```bash
+docker compose run --rm app php artisan key:generate --show
+```
+*(Copy the printed `base64:...` string to `APP_KEY` in your `.env` file).*
 
 ### 3. Build and Start Containers
 ```bash
@@ -60,7 +65,6 @@ docker compose up -d --build
 
 ### 4. Initialize Database & Demo Seed Data
 ```bash
-docker compose exec app php artisan key:generate
 docker compose exec app php artisan migrate --seed
 ```
 

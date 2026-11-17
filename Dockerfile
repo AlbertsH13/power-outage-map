@@ -35,7 +35,6 @@ COPY --from=frontend-builder /app/public/build ./public/build
 RUN cp -r /var/www/html/public/build /var/www/html/build-dist \
     && ([ -f /var/www/html/.env ] || cp /var/www/html/.env.example /var/www/html/.env) \
     && composer dump-autoload --optimize \
-    && php artisan key:generate --force \
     && chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/public /var/www/html/.env
 
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh

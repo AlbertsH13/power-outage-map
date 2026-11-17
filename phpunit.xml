@@ -19,7 +19,6 @@
     </source>
     <php>
         <server name="APP_ENV" value="testing" force="true"/>
-        <server name="APP_KEY" value="base64:CzC0xFmnY0bRBsgRUuEYlbirR32W3zRb5T3yciRdW2E=" force="true"/>
         <server name="APP_MAINTENANCE_DRIVER" value="file" force="true"/>
         <server name="BCRYPT_ROUNDS" value="4" force="true"/>
         <server name="BROADCAST_CONNECTION" value="null" force="true"/>
@@ -34,7 +33,6 @@
         <server name="TELESCOPE_ENABLED" value="false" force="true"/>
         <server name="NIGHTWATCH_ENABLED" value="false" force="true"/>
         <env name="APP_ENV" value="testing" force="true"/>
-        <env name="APP_KEY" value="base64:CzC0xFmnY0bRBsgRUuEYlbirR32W3zRb5T3yciRdW2E=" force="true"/>
         <env name="APP_MAINTENANCE_DRIVER" value="file" force="true"/>
         <env name="BCRYPT_ROUNDS" value="4" force="true"/>
         <env name="BROADCAST_CONNECTION" value="null" force="true"/>
