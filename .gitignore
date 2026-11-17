@@ -20,6 +20,8 @@
 /public/hot
 /public/storage
 /storage/*.key
+/storage/framework/*.key
+*.key
 /storage/pail
 /vendor
 _ide_helper.php
