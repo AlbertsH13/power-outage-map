@@ -107,7 +107,7 @@ Execute the complete PHPUnit test suite inside the application container:
 ```bash
 docker compose exec app php artisan test
 ```
-*Current test suite: **69 tests passing (301 assertions)** covering authentication, geospatial queries, rate limits, quota enforcement, ownership policies, expiration jobs, Livewire components, styled error pages, and UI rendering.*
+*Current test suite: **72 tests passing (313 assertions)** covering authentication, geospatial queries, rate limits, quota enforcement, ownership policies, expiration jobs, Livewire components, styled error pages, and UI rendering.*
 
 ### Code Style Verification
 Run Laravel Pint to verify compliance with PSR-12 and Laravel conventions:

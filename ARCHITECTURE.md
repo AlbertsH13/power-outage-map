@@ -188,13 +188,13 @@ erDiagram
 | `/` | `GET` | `LandingPageController` | `web` | No | Public landing page with embedded preview map. Returns HTTP 200. |
 | `/map` | `GET` | `PublicMapController` | `web` | No | Fullscreen public outage map with auto-refresh. Returns HTTP 200. |
 | `/reports/create` | `GET` | `ReportController@create` | `web`, `auth` | Yes | Outage submission page with map picker. Returns HTTP 200. |
-| `/reports` | `POST` | `ReportController@store` | `web`, `auth`, `throttle:create-outage` | Yes | Submit new report. Calls `CreateOutageAction`. |
+| `/reports` | `POST` | `ReportController@store` | `web`, `auth` | Yes | Submit new report. Calls `CreateOutageAction` (rate limit of 5/hour enforced inside Action). |
 | `/my-reports` | `GET` | `ReportController@index` | `web`, `auth` | Yes | User reports dashboard (paginated). Returns HTTP 200. |
 | `/reports/{outage}/edit` | `GET` | `ReportController@edit` | `web`, `auth` | Yes | Edit report view. Verified by `OutagePolicy@update`. |
 | `/reports/{outage}` | `PUT`, `PATCH` | `ReportController@update` | `web`, `auth` | Yes | Update active report. Calls `UpdateOutageAction`. |
 | `/reports/{outage}/close` | `POST`, `PATCH` | `ReportController@close` | `web`, `auth` | Yes | Resolve outage manually. Calls `CloseOutageAction`. |
 | `/api/v1/outages` | `GET` | `Api\V1\OutageApiController@index` | `throttle:outages-api` | No | Viewport JSON feed (`PublicOutageResource[]`, zero PII). |
-| `/api/v1/outages` | `POST` | `Api\V1\OutageApiController@store` | `auth`, `throttle:create-outage` | Yes | Create report via REST. Calls `CreateOutageAction`. |
+| `/api/v1/outages` | `POST` | `Api\V1\OutageApiController@store` | `auth` | Yes | Create report via REST. Calls `CreateOutageAction` (rate limit of 5/hour enforced inside Action). |
 | `/api/v1/outages/{outage}` | `PUT`, `PATCH` | `Api\V1\OutageApiController@update` | `auth` | Yes | Update report via REST. Calls `UpdateOutageAction`. |
 | `/api/v1/outages/{outage}/close` | `POST`, `PATCH` | `Api\V1\OutageApiController@close` | `auth` | Yes | Resolve outage via REST. Calls `CloseOutageAction`. |
 | `/login` | `GET`, `POST` | Breeze Auth | `web`, `guest`, `throttle:login` | No | Login form and credential validation. |

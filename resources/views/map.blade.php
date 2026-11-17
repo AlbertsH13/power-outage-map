@@ -5,8 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Live Map — {{ config('app.name', 'Power Outage Map') }}</title>
 
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
-
     @vite(['resources/css/app.css', 'resources/js/app.js', 'resources/js/outage-map.js'])
 </head>
 <body class="h-full flex flex-col bg-[var(--color-bg)] text-[var(--color-text)] antialiased font-sans overflow-hidden">
@@ -84,8 +82,6 @@
             </p>
         </div>
     </div>
-
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
