@@ -7,6 +7,7 @@ use App\Actions\UpdateOutageAction;
 use App\Enums\DurationType;
 use App\Enums\OutageStatus;
 use App\Models\Outage;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 use Livewire\Component;
@@ -32,9 +33,18 @@ class ManageReports extends Component
     {
         $outage = Outage::findOrFail($outageId);
 
-        $closeOutageAction->execute(auth()->user(), $outage);
+        Gate::authorize('close', $outage);
+
+        $closeOutageAction->execute(Auth::user(), $outage);
+
+        $this->resetPage();
 
         session()->flash('status', 'Report marked as resolved.');
+    }
+
+    public function resolve(int $outageId, CloseOutageAction $closeOutageAction): void
+    {
+        $this->closeReport($outageId, $closeOutageAction);
     }
 
     public function openEditModal(int $outageId): void
@@ -67,7 +77,7 @@ class ManageReports extends Component
             'description' => ['nullable', 'string', 'max:500'],
         ]);
 
-        $updateOutageAction->execute(auth()->user(), $outage, $validated);
+        $updateOutageAction->execute(Auth::user(), $outage, $validated);
 
         $this->showEditModal = false;
         session()->flash('status', 'Outage report updated successfully.');
@@ -75,7 +85,7 @@ class ManageReports extends Component
 
     public function render()
     {
-        $user = auth()->user();
+        $user = Auth::user();
 
         $activeOutages = $user->outages()
             ->active()

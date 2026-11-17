@@ -47,7 +47,7 @@
         @else
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                 @foreach ($activeOutages as $outage)
-                    <div class="rounded-2xl border border-gray-200 bg-white shadow-xs p-5 flex flex-col justify-between space-y-4">
+                    <div wire:key="active-outage-{{ $outage->id }}" class="rounded-2xl border border-gray-200 bg-white shadow-xs p-5 flex flex-col justify-between space-y-4">
                         <div class="space-y-3">
                             <div class="flex items-center justify-between">
                                 <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-red-100 text-red-700">
@@ -98,9 +98,10 @@
 
                                 <button type="button"
                                         wire:click="closeReport({{ $outage->id }})"
-                                        wire:confirm="Are you sure you want to mark this outage as resolved?"
-                                        class="px-2.5 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 shadow-xs transition">
-                                    Mark as Resolved
+                                        wire:loading.attr="disabled"
+                                        class="px-2.5 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 shadow-xs transition disabled:opacity-50">
+                                    <span wire:loading.remove wire:target="closeReport({{ $outage->id }})">Mark as Resolved</span>
+                                    <span wire:loading wire:target="closeReport({{ $outage->id }})">Resolving...</span>
                                 </button>
                             </div>
                         </div>
@@ -138,7 +139,7 @@
                         </thead>
                         <tbody class="divide-y divide-gray-100">
                             @foreach ($pastOutages as $outage)
-                                <tr class="hover:bg-gray-50/75 transition">
+                                <tr wire:key="past-outage-{{ $outage->id }}" class="hover:bg-gray-50/75 transition">
                                     <td class="py-3 px-4 font-mono font-medium text-gray-800">
                                         {{ number_format($outage->latitude, 3) }}, {{ number_format($outage->longitude, 3) }}
                                     </td>

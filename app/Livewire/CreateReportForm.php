@@ -4,6 +4,7 @@ namespace App\Livewire;
 
 use App\Actions\CreateOutageAction;
 use App\Enums\DurationType;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Livewire\Component;
@@ -39,7 +40,7 @@ class CreateReportForm extends Component
         ]);
 
         try {
-            $createOutageAction->execute(auth()->user(), $validated);
+            $createOutageAction->execute(Auth::user(), $validated);
         } catch (ValidationException $e) {
             $this->setErrorBag($e->validator->getMessageBag());
 
@@ -53,7 +54,7 @@ class CreateReportForm extends Component
 
     public function render()
     {
-        $activeCount = auth()->user()->outages()->active()->count();
+        $activeCount = Auth::user()->outages()->active()->count();
         $maxActive = (int) config('outage.max_active_per_user', 3);
 
         return view('livewire.create-report-form', [
